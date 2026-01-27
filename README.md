@@ -1,0 +1,2 @@
+# RealEstateHelper
+A full-stack, role-based web platform that connects property sellers with potential buyers, featuring real-time map integration, secure authentication, and a robust property management workflow. Objective: To streamline the property buying and selling process by providing a centralized platform where Sellers can list properties, Admins can moderate listings for quality, and Buyers can search, view, and book properties with ease.
