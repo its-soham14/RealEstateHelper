@@ -1,0 +1,22 @@
+:root {
+  --navbar-height: 80px;
+}
+
+html {
+  scrollbar-gutter: stable;
+  overflow-y: scroll;
+  /* Force scrollbar to prevent shift */
+}
+
+body {
+  padding-top: var(--navbar-height);
+  /* Prevent content from hiding behind fixed navbar */
+  min-height: 100vh;
+}
+
+.App {
+  text-align: center;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}

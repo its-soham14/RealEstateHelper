@@ -1,0 +1,17 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Run Backend (Spring Boot)",
+            "request": "launch",
+            "cwd": "${workspaceFolder}/backend",
+            "mainClass": "com.cdac.realestate.RealEstateApplication",
+            "projectName": "backend",
+            "shortenCommandLine": "none",
+            "env": {
+                "SPRING_PROFILES_ACTIVE": "dev"
+            }
+        }
+    ]
+}
