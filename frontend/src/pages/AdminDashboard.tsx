@@ -2,8 +2,35 @@ import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Table, Button, Tabs, Tab, Badge, Modal, Form } from 'react-bootstrap';
 import axios from 'axios';
 import type { User } from '../App';
-import { Check, X, Shield, Users, Home } from 'lucide-react';
+import { Check, X, Shield, Users, Home, CreditCard, ExternalLink, Trash2, Info } from 'lucide-react';
 import PropertyMap from '../components/PropertyMap';
+
+// Custom styles for a premium look
+const styles = {
+    card: {
+        border: 'none',
+        borderRadius: '16px',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
+        transition: 'transform 0.2s ease'
+    },
+    statIcon: {
+        width: '56px',
+        height: '56px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: '12px'
+    },
+    tableHeader: {
+        backgroundColor: '#f8f9fa',
+        textTransform: 'uppercase' as const,
+        fontSize: '0.75rem',
+        letterSpacing: '1px',
+        fontWeight: 700,
+        color: '#6c757d',
+        borderTop: 'none'
+    }
+};
 
 interface AdminDashboardProps {
     user: User;
@@ -22,6 +49,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
     const [selectedUser, setSelectedUser] = useState<any>(null);
     const [selectedProperty, setSelectedProperty] = useState<any>(null);
 
+    // ... Logic remains identical to your original code ...
     const fetchUsers = async () => {
         try {
             const token = localStorage.getItem('token');
@@ -114,75 +142,100 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
     };
 
     return (
-        <Container className="py-4">
-            <div className="d-flex align-items-center gap-3 mb-4">
-                <Shield size={32} className="text-primary" />
-                <h2 className="fw-bold mb-0">Admin Dashboard</h2>
+        <Container className="py-5">
+            {/* Header Section */}
+            <div className="mb-5 d-flex justify-content-between align-items-end">
+                <div>
+                    <Badge bg="primary-subtle" className="text-primary px-3 py-2 mb-2 rounded-pill">Admin Portal</Badge>
+                    <h1 className="fw-extrabold mb-0" style={{ letterSpacing: '-1px' }}>Dashboard Overview</h1>
+                    <p className="text-muted mb-0">Manage your marketplace, users, and financial records.</p>
+                </div>
+                <div className="bg-white p-2 rounded-circle shadow-sm border">
+                    <Shield size={28} className="text-primary" />
+                </div>
             </div>
 
-            <Row className="mb-4">
+            {/* Stats Cards */}
+            <Row className="mb-5 g-4">
                 <Col md={4}>
-                    <Card className="border-0 shadow-sm p-3 mb-3">
-                        <div className="d-flex align-items-center gap-3">
-                            <div className="bg-primary bg-opacity-10 p-3 rounded-circle text-primary"><Users /></div>
-                            <div>
-                                <h6 className="text-muted mb-0">Total Users</h6>
+                    <Card style={styles.card} className="p-3">
+                        <div className="d-flex align-items-center">
+                            <div style={{ ...styles.statIcon, background: '#e0eaff' }}>
+                                <Users className="text-primary" />
+                            </div>
+                            <div className="ms-3">
+                                <h6 className="text-uppercase fw-bold text-muted mb-1" style={{ fontSize: '0.7rem' }}>Total Users</h6>
                                 <h3 className="fw-bold mb-0">{users.length}</h3>
                             </div>
                         </div>
                     </Card>
                 </Col>
                 <Col md={4}>
-                    <Card className="border-0 shadow-sm p-3 mb-3">
-                        <div className="d-flex align-items-center gap-3">
-                            <div className="bg-warning bg-opacity-10 p-3 rounded-circle text-warning"><Home /></div>
-                            <div>
-                                <h6 className="text-muted mb-0">Pending Approvals</h6>
-                                <h3 className="fw-bold mb-0">{pendingProperties.length}</h3>
+                    <Card style={styles.card} className="p-3">
+                        <div className="d-flex align-items-center">
+                            <div style={{ ...styles.statIcon, background: '#fff4e5' }}>
+                                <Home className="text-warning" />
+                            </div>
+                            <div className="ms-3">
+                                <h6 className="text-uppercase fw-bold text-muted mb-1" style={{ fontSize: '0.7rem' }}>Pending Listings</h6>
+                                <h3 className="fw-bold mb-0 text-warning">{pendingProperties.length}</h3>
+                            </div>
+                        </div>
+                    </Card>
+                </Col>
+                <Col md={4}>
+                    <Card style={styles.card} className="p-3">
+                        <div className="d-flex align-items-center">
+                            <div style={{ ...styles.statIcon, background: '#e7f9ed' }}>
+                                <CreditCard className="text-success" />
+                            </div>
+                            <div className="ms-3">
+                                <h6 className="text-uppercase fw-bold text-muted mb-1" style={{ fontSize: '0.7rem' }}>Live Transactions</h6>
+                                <h3 className="fw-bold mb-0 text-success">{transactions.length}</h3>
                             </div>
                         </div>
                     </Card>
                 </Col>
             </Row>
 
-            <Tabs defaultActiveKey="moderation" className="mb-4">
-                <Tab eventKey="moderation" title="Property Moderation">
-                    <Card className="border-0 shadow-sm">
-                        <Card.Body>
-                            {pendingProperties.length === 0 ? <p className="text-muted">No pending properties.</p> : (
-                                <Table responsive hover>
-                                    <thead>
+            {/* Main Tabs Container */}
+            <Tabs defaultActiveKey="moderation" className="custom-tabs mb-4 border-0">
+                <Tab eventKey="moderation" title="Property Approval">
+                    <Card style={styles.card} className="overflow-hidden">
+                        <Card.Body className="p-0">
+                            {pendingProperties.length === 0 ? (
+                                <div className="p-5 text-center"><p className="text-muted">No pending approvals at the moment.</p></div>
+                            ) : (
+                                <Table hover responsive className="mb-0 align-middle">
+                                    <thead style={styles.tableHeader}>
                                         <tr>
-                                            <th>ID</th>
-                                            <th>Seller</th>
+                                            <th className="ps-4">Seller</th>
                                             <th>Type</th>
-                                            <th>Details</th>
+                                            <th>Location</th>
                                             <th>Price</th>
-                                            <th>Actions</th>
+                                            <th className="text-end pe-4">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {pendingProperties.map((p: any) => (
                                             <tr key={p.id}>
-                                                <td>{p.id}</td>
-                                                <td>
-                                                    <Button variant="outline-primary" size="sm" onClick={() => handleViewUser(p.seller.id)} className="me-2 text-decoration-none">
-                                                        {p.seller.name}
-                                                    </Button>
+                                                <td className="ps-4">
+                                                    <div className="fw-bold">{p.seller.name}</div>
+                                                    <small className="text-muted">{p.seller.email}</small>
                                                 </td>
-                                                <td><Badge bg="info">{p.type}</Badge></td>
+                                                <td><Badge pill bg="light" className="text-dark border">{p.type}</Badge></td>
                                                 <td>
-                                                    <span className="d-block text-truncate" style={{ maxWidth: '150px' }}>{p.address}, {p.city}</span>
-                                                    <Button variant="link" size="sm" className="p-0 text-decoration-none" onClick={() => handleViewProperty(p)}>View Full Details</Button>
+                                                    <div className="text-truncate" style={{ maxWidth: '200px' }}>{p.address}</div>
+                                                    <small className="text-primary cursor-pointer" style={{cursor: 'pointer'}} onClick={() => handleViewProperty(p)}>View Details</small>
                                                 </td>
-                                                <td>₹ {p.price}</td>
-                                                <td>
-                                                    <div className="d-flex gap-1">
-                                                        <Button variant="success" size="sm" onClick={() => handlePropertyAction(p.id, 'APPROVED')}>
-                                                            <Check size={16} />
+                                                <td className="fw-bold text-dark">₹{p.price.toLocaleString()}</td>
+                                                <td className="text-end pe-4">
+                                                    <div className="d-flex gap-2 justify-content-end">
+                                                        <Button variant="success" size="sm" className="rounded-pill px-3" onClick={() => handlePropertyAction(p.id, 'APPROVED')}>
+                                                            <Check size={14} className="me-1" /> Approve
                                                         </Button>
-                                                        <Button variant="danger" size="sm" onClick={() => handlePropertyAction(p.id, 'REJECTED')}>
-                                                            <X size={16} />
+                                                        <Button variant="outline-danger" size="sm" className="rounded-pill" onClick={() => handlePropertyAction(p.id, 'REJECTED')}>
+                                                            <X size={14} />
                                                         </Button>
                                                     </div>
                                                 </td>
@@ -194,30 +247,39 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
                         </Card.Body>
                     </Card>
                 </Tab>
+
                 <Tab eventKey="users" title="User Management">
-                    <Card className="border-0 shadow-sm">
-                        <Card.Body>
-                            <Table responsive hover>
-                                <thead>
+                    <Card style={styles.card} className="overflow-hidden">
+                        <Card.Body className="p-0">
+                            <Table hover responsive className="mb-0 align-middle">
+                                <thead style={styles.tableHeader}>
                                     <tr>
-                                        <th>ID</th>
-                                        <th>Name</th>
-                                        <th>Email</th>
+                                        <th className="ps-4">User Details</th>
                                         <th>Role</th>
-                                        <th>Actions</th>
+                                        <th className="text-end pe-4">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {users.map((u: any) => (
                                         <tr key={u.id}>
-                                            <td>{u.id}</td>
-                                            <td>{u.name}</td>
-                                            <td>{u.email}</td>
-                                            <td><Badge bg={u.role === 'ADMIN' ? 'dark' : u.role === 'SELLER' ? 'warning' : 'primary'}>{u.role}</Badge></td>
+                                            <td className="ps-4">
+                                                <div className="d-flex align-items-center">
+                                                    <div className="bg-light rounded-circle p-2 me-3 text-secondary"><Users size={16}/></div>
+                                                    <div>
+                                                        <div className="fw-bold">{u.name}</div>
+                                                        <div className="text-muted small">{u.email}</div>
+                                                    </div>
+                                                </div>
+                                            </td>
                                             <td>
+                                                <Badge bg={u.role === 'ADMIN' ? 'dark' : u.role === 'SELLER' ? 'warning' : 'info'} pill className="px-3">
+                                                    {u.role}
+                                                </Badge>
+                                            </td>
+                                            <td className="text-end pe-4">
                                                 {u.role !== 'ADMIN' && (
-                                                    <Button variant="outline-danger" size="sm" onClick={() => handleDeleteUser(u.id)}>
-                                                        Delete
+                                                    <Button variant="link" className="text-danger p-0" onClick={() => handleDeleteUser(u.id)}>
+                                                        <Trash2 size={18} />
                                                     </Button>
                                                 )}
                                             </td>
@@ -228,152 +290,108 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
                         </Card.Body>
                     </Card>
                 </Tab>
+
                 <Tab eventKey="transactions" title="Transactions">
-                    <Card className="border-0 shadow-sm">
-                        <Card.Body>
-                            {transactions.length === 0 ? <p className="text-muted">No transactions found.</p> : (
-                                <Table responsive hover striped>
-                                    <thead>
-                                        <tr>
-                                            <th>ID</th>
-                                            <th>Property</th>
-                                            <th>Buyer</th>
-                                            <th>Seller</th>
-                                            <th>Amount (5%)</th>
-                                            <th>Date</th>
+                    <Card style={styles.card} className="overflow-hidden">
+                        <Card.Body className="p-0">
+                            <Table hover responsive className="mb-0 align-middle">
+                                <thead style={styles.tableHeader}>
+                                    <tr>
+                                        <th className="ps-4">Transaction ID</th>
+                                        <th>Parties</th>
+                                        <th>Revenue (5%)</th>
+                                        <th className="text-end pe-4">Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {transactions.map((t: any) => (
+                                        <tr key={t.id}>
+                                            <td className="ps-4">
+                                                <code className="text-muted small">{t.transactionId}</code>
+                                                <div className="small fw-bold">{t.property.title}</div>
+                                            </td>
+                                            <td>
+                                                <div className="small text-muted">B: {t.buyer.name}</div>
+                                                <div className="small text-muted">S: {t.seller.name}</div>
+                                            </td>
+                                            <td><span className="text-success fw-bold">₹{t.amount.toLocaleString()}</span></td>
+                                            <td className="text-end pe-4 text-muted small">{new Date(t.paymentDate).toLocaleDateString()}</td>
                                         </tr>
-                                    </thead>
-                                    <tbody>
-                                        {transactions.map((t: any) => (
-                                            <tr key={t.id}>
-                                                <td><small className="font-monospace">{t.transactionId}</small></td>
-                                                <td>{t.property.title}</td>
-                                                <td>{t.buyer.name} <small className="text-muted">({t.buyer.email})</small></td>
-                                                <td>{t.seller.name} <small className="text-muted">({t.seller.email})</small></td>
-                                                <td className="text-success fw-bold">₹ {t.amount.toLocaleString()}</td>
-                                                <td>{new Date(t.paymentDate).toLocaleDateString()}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </Table>
-                            )}
+                                    ))}
+                                </tbody>
+                            </Table>
                         </Card.Body>
                     </Card>
                 </Tab>
             </Tabs>
 
-            {/* User/Seller Details Modal */}
-            <Modal show={showUserModal} onHide={() => setShowUserModal(false)}>
-                <Modal.Header closeButton>
-                    <Modal.Title>User Details</Modal.Title>
-                </Modal.Header>
-                <Modal.Body>
-                    {selectedUser ? (
+            {/* Modals with enhanced styling */}
+            <Modal show={showPropertyModal} onHide={() => setShowPropertyModal(false)} size="lg" centered contentClassName="border-0 shadow-lg" style={{borderRadius: '20px'}}>
+                <Modal.Body className="p-0">
+                    {selectedProperty && (
                         <div>
-                            <div className="text-center mb-4">
-                                <div className="bg-light rounded-circle d-inline-flex p-3 mb-2 text-primary">
-                                    <Users size={48} />
-                                </div>
-                                <h4>{selectedUser.name}</h4>
-                                <Badge bg="secondary">{selectedUser.role}</Badge>
-                            </div>
-                            <p><strong>Email:</strong> {selectedUser.email}</p>
-                            <p><strong>Phone:</strong> {selectedUser.phone || 'N/A'}</p>
-                            <p><strong>Address:</strong> {selectedUser.address || 'N/A'}</p>
-                            {selectedUser.role === 'SELLER' && <p><strong>Company:</strong> {selectedUser.companyName || 'N/A'}</p>}
-                        </div>
-                    ) : <p>Loading...</p>}
-                </Modal.Body>
-                <Modal.Footer>
-                    <Button variant="secondary" onClick={() => setShowUserModal(false)}>Close</Button>
-                </Modal.Footer>
-            </Modal>
-
-            {/* Property Details Modal */}
-            <Modal show={showPropertyModal} onHide={() => setShowPropertyModal(false)} size="lg" centered>
-                <Modal.Header closeButton>
-                    <Modal.Title>Property Details</Modal.Title>
-                </Modal.Header>
-                <Modal.Body>
-                    {selectedProperty ? (
-                        <div>
-                            {/* Hero Image in Modal */}
-                            <div className="rounded-3 overflow-hidden shadow-sm mb-3 position-relative" style={{ height: '250px' }}>
+                            <div className="position-relative" style={{ height: '300px' }}>
                                 <img
-                                    src={selectedProperty.images ? selectedProperty.images.split(',')[0] : 'https://via.placeholder.com/800x400'}
-                                    alt={selectedProperty.title}
+                                    src={selectedProperty.images ? selectedProperty.images.split(',')[0] : 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&q=80&w=1000'}
+                                    alt="Property"
                                     className="w-100 h-100 object-fit-cover"
                                 />
-                                <Badge bg="warning" className="position-absolute top-0 end-0 m-3 fs-6">
-                                    {selectedProperty.status}
-                                </Badge>
+                                <Button 
+                                    variant="light" 
+                                    className="position-absolute top-0 end-0 m-3 rounded-circle shadow-sm"
+                                    onClick={() => setShowPropertyModal(false)}
+                                >
+                                    <X size={20} />
+                                </Button>
                             </div>
+                            <div className="p-4">
+                                <div className="d-flex justify-content-between align-items-start mb-3">
+                                    <div>
+                                        <h3 className="fw-bold mb-1">{selectedProperty.title}</h3>
+                                        <p className="text-muted mb-0"><Home size={16} className="me-1"/> {selectedProperty.address}, {selectedProperty.city}</p>
+                                    </div>
+                                    <h3 className="text-primary fw-bold">₹{selectedProperty.price.toLocaleString()}</h3>
+                                </div>
+                                
+                                <Row className="g-3 mb-4 text-center">
+                                    <Col xs={3}><div className="bg-light p-2 rounded"><strong>{selectedProperty.area}</strong><br/><small className="text-muted">Sq.ft</small></div></Col>
+                                    <Col xs={3}><div className="bg-light p-2 rounded"><strong>{selectedProperty.beds || 0}</strong><br/><small className="text-muted">Beds</small></div></Col>
+                                    <Col xs={3}><div className="bg-light p-2 rounded"><strong>{selectedProperty.baths || 0}</strong><br/><small className="text-muted">Baths</small></div></Col>
+                                    <Col xs={3}><div className="bg-light p-2 rounded"><strong>{selectedProperty.type}</strong><br/><small className="text-muted">Type</small></div></Col>
+                                </Row>
 
-                            <h3 className="fw-bold mb-2">{selectedProperty.title || selectedProperty.type}</h3>
-                            <p className="text-muted d-flex align-items-center gap-2 mb-3">
-                                <Home size={18} /> {selectedProperty.address}, {selectedProperty.city}
-                            </p>
+                                <div className="mb-4">
+                                    <PropertyMap location={`${selectedProperty.address}, ${selectedProperty.city}`} />
+                                </div>
 
-                            {/* Location Map */}
-                            <div className="mb-4 rounded-3 overflow-hidden border" style={{ height: '250px' }}>
-                                <PropertyMap location={`${selectedProperty.address}, ${selectedProperty.city}`} />
-                            </div>
-
-                            <h4 className="text-primary fw-bold mb-4">₹ {selectedProperty.price.toLocaleString()}</h4>
-
-                            <Row className="mb-4">
-                                <Col><strong>Type:</strong> {selectedProperty.type}</Col>
-                                <Col><strong>Area:</strong> {selectedProperty.area}</Col>
-                                {selectedProperty.type === 'HOUSE' && (
-                                    <>
-                                        <Col><strong>Beds:</strong> {selectedProperty.beds}</Col>
-                                        <Col><strong>Baths:</strong> {selectedProperty.baths}</Col>
-                                    </>
-                                )}
-                            </Row>
-
-                            <h5 className="fw-bold mb-2">Description</h5>
-                            <p className="text-secondary">{selectedProperty.description}</p>
-
-                            <hr />
-                            <h6 className="fw-bold mb-2">Seller Info</h6>
-                            <div className="d-flex align-items-center gap-3">
-                                <div className="bg-light rounded-circle p-2"><Users size={20} /></div>
-                                <div>
-                                    <div className="fw-bold">{selectedProperty.seller.name}</div>
-                                    <div className="small text-muted">{selectedProperty.seller.email}</div>
+                                <div className="d-flex gap-3 justify-content-end pt-3 border-top">
+                                    <Button variant="danger" className="px-4 py-2" onClick={() => { setShowPropertyModal(false); handlePropertyAction(selectedProperty?.id, 'REJECTED'); }}>Reject Listing</Button>
+                                    <Button variant="success" className="px-4 py-2" onClick={() => { setShowPropertyModal(false); handlePropertyAction(selectedProperty?.id, 'APPROVED'); }}>Approve Listing</Button>
                                 </div>
                             </div>
                         </div>
-                    ) : <p>Loading...</p>}
+                    )}
                 </Modal.Body>
-                <Modal.Footer>
-                    <Button variant="secondary" onClick={() => setShowPropertyModal(false)}>Close</Button>
-                    <Button variant="success" onClick={() => { setShowPropertyModal(false); handlePropertyAction(selectedProperty?.id, 'APPROVED'); }}>Approve Now</Button>
-                    <Button variant="danger" onClick={() => { setShowPropertyModal(false); handlePropertyAction(selectedProperty?.id, 'REJECTED'); }}>Reject</Button>
-                </Modal.Footer>
             </Modal>
 
-            {/* Rejection Reason Modal */}
-            <Modal show={showRejectModal} onHide={() => setShowRejectModal(false)}>
-                <Modal.Header closeButton>
-                    <Modal.Title>Reject Property</Modal.Title>
+            {/* Rejection Modal */}
+            <Modal show={showRejectModal} onHide={() => setShowRejectModal(false)} centered>
+                <Modal.Header closeButton className="border-0">
+                    <Modal.Title className="fw-bold">Specify Rejection Reason</Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
-                    <Form.Group>
-                        <Form.Label>Reason for Rejection</Form.Label>
-                        <Form.Control
-                            as="textarea"
-                            rows={3}
-                            value={rejectionReason}
-                            onChange={(e) => setRejectionReason(e.target.value)}
-                            placeholder="e.g. Invalid documents, Poor image quality..."
-                        />
-                    </Form.Group>
+                    <Form.Control
+                        as="textarea"
+                        rows={4}
+                        className="bg-light border-0"
+                        value={rejectionReason}
+                        onChange={(e) => setRejectionReason(e.target.value)}
+                        placeholder="Why is this listing being rejected?"
+                    />
                 </Modal.Body>
-                <Modal.Footer>
-                    <Button variant="secondary" onClick={() => setShowRejectModal(false)}>Cancel</Button>
-                    <Button variant="danger" onClick={submitRejection}>Confirm Rejection</Button>
+                <Modal.Footer className="border-0">
+                    <Button variant="light" onClick={() => setShowRejectModal(false)}>Cancel</Button>
+                    <Button variant="danger" onClick={submitRejection} disabled={!rejectionReason}>Reject Permanently</Button>
                 </Modal.Footer>
             </Modal>
         </Container>

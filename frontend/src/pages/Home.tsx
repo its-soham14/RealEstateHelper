@@ -1,56 +1,98 @@
 import React from 'react';
-import { Container, Row, Col, Button, Card } from 'react-bootstrap';
+import { Container, Row, Col, Button, Card, Badge } from 'react-bootstrap';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Home as HomeIcon } from 'lucide-react';
+import { ArrowRight, CheckCircle, ShieldCheck, MapPin, Zap, Users, Star } from 'lucide-react';
 
 interface HomeProps {
     user?: any;
 }
 
+// Animation Variants
+const fadeInUp = {
+    initial: { opacity: 0, y: 30 },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: 0.6 }
+};
+
 const Home: React.FC<HomeProps> = ({ user }) => {
     return (
-        <div>
+        <div style={{ backgroundColor: '#fff' }}>
             {/* Hero Section */}
-            <section className="position-relative d-flex align-items-center bg-light" style={{ minHeight: '80vh', overflow: 'hidden' }}>
-                <Container className="position-relative z-1">
+            <section className="position-relative d-flex align-items-center" 
+                style={{ 
+                    minHeight: '90vh', 
+                    overflow: 'hidden',
+                    background: 'radial-gradient(circle at 90% 10%, rgba(0, 102, 255, 0.05) 0%, rgba(255, 255, 255, 1) 50%)' 
+                }}>
+                {/* Decorative background element */}
+                <div className="position-absolute top-0 start-0 w-100 h-100 opacity-25" style={{ zIndex: 0, pointerEvents: 'none' }}>
+                    <div className="position-absolute" style={{ top: '10%', left: '5%', width: '300px', height: '300px', background: '#0066ff', filter: 'blur(150px)', borderRadius: '50%' }}></div>
+                </div>
+
+                <Container className="position-relative" style={{ zIndex: 1 }}>
                     <Row className="align-items-center">
-                        <Col lg={6}>
-                            <motion.div
-                                initial={{ opacity: 0, x: -50 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ duration: 0.8 }}
-                            >
-                                <h1 className="display-4 fw-bold text-dark mb-4">
-                                    Find Your Dream <span className="text-primary">Property</span> With Ease
+                        <Col lg={6} className="text-start">
+                            <motion.div initial="initial" animate="animate" variants={fadeInUp}>
+                                <Badge bg="primary-subtle" className="text-primary px-3 py-2 rounded-pill mb-3 fw-bold">
+                                    <Star size={14} className="me-1 mb-1" /> The #1 Real Estate Marketplace
+                                </Badge>
+                                <h1 className="display-3 fw-extrabold text-dark mb-4" style={{ letterSpacing: '-2px', lineHeight: 1.1 }}>
+                                    Your Vision. Our <span className="text-primary" style={{ position: 'relative' }}>
+                                        Expertise.
+                                        <svg className="position-absolute start-0 w-100" style={{ bottom: '-10px' }} viewBox="0 0 200 20" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M0 15 Q50 5 100 15 T200 15" fill="none" stroke="#0066ff" strokeWidth="4" />
+                                        </svg>
+                                    </span><br />
+                                    The Perfect Home.
                                 </h1>
-                                <p className="lead text-muted mb-5">
-                                    Discover the perfect home, land, or farm from our verified listings.
-                                    Seamlessly connect with sellers and manage your real estate journey.
+                                <p className="lead text-muted mb-5 fs-5 w-75">
+                                    Discover verified premium listings. From urban luxury apartments to serene country farmsteads, we connect you to your future.
                                 </p>
-                                <div className="d-flex gap-3">
-                                    <Button as={Link as any} to="/signup" variant="primary" size="lg" className="rounded-pill px-5 py-3 shadow-lg">
-                                        Get Started <ArrowRight className="ms-2" size={20} />
+                                <div className="d-flex gap-3 align-items-center">
+                                    <Button as={Link as any} to="/signup" variant="primary" size="lg" className="rounded-pill px-5 py-3 shadow-primary hover-lift border-0" style={{ backgroundColor: '#0066ff' }}>
+                                        Explore Now <ArrowRight className="ms-2" size={20} />
                                     </Button>
-                                    <Button as={Link as any} to="/login" variant="outline-dark" size="lg" className="rounded-pill px-5 py-3">
-                                        Login
-                                    </Button>
+                                    <div className="d-flex align-items-center ms-3">
+                                        <div className="d-flex me-2">
+                                            {[1,2,3].map(i => (
+                                                <img key={i} src={`https://i.pravatar.cc/150?u=${i}`} className="rounded-circle border border-white" style={{ width: '40px', height: '40px', marginLeft: i > 1 ? '-15px' : '0' }} alt="user" />
+                                            ))}
+                                        </div>
+                                        <small className="text-muted fw-bold">10k+ Happy Users</small>
+                                    </div>
                                 </div>
                             </motion.div>
                         </Col>
-                        <Col lg={6} className="text-center">
-                            <motion.div
-                                initial={{ opacity: 0, scale: 0.8 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                transition={{ duration: 0.8, delay: 0.2 }}
+                        
+                        <Col lg={6} className="position-relative mt-5 mt-lg-0">
+                            <motion.div 
+                                initial={{ opacity: 0, scale: 0.9 }} 
+                                animate={{ opacity: 1, scale: 1 }} 
+                                transition={{ duration: 1 }}
+                                className="ps-lg-5"
                             >
-                                <div className="rounded-5 shadow-lg bg-white p-3 d-inline-block">
-                                    <img
-                                        src="https://aslgate.com/wp-content/uploads/2022/03/9606.jpg_wh860.jpg"
-                                        alt="Modern Building"
-                                        className="rounded-4 img-fluid"
-                                        style={{ maxHeight: '500px' }}
-                                    />
+                                <div className="position-relative">
+                                    <div className="rounded-5 shadow-2xl overflow-hidden position-relative" style={{ border: '8px solid white' }}>
+                                        <img
+                                            src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&q=80&w=1000"
+                                            alt="Modern Living"
+                                            className="img-fluid"
+                                        />
+                                    </div>
+                                    {/* Floating stats card */}
+                                    <motion.div 
+                                        animate={{ y: [0, -10, 0] }} 
+                                        transition={{ repeat: Infinity, duration: 4 }}
+                                        className="position-absolute bg-white p-3 rounded-4 shadow-lg d-flex align-items-center"
+                                        style={{ bottom: '10%', left: '-5%', zIndex: 2 }}
+                                    >
+                                        <div className="bg-success-subtle p-2 rounded-3 me-3"><CheckCircle className="text-success" /></div>
+                                        <div>
+                                            <div className="fw-bold mb-0">Verified</div>
+                                            <small className="text-muted">Govt. Approved</small>
+                                        </div>
+                                    </motion.div>
                                 </div>
                             </motion.div>
                         </Col>
@@ -58,21 +100,41 @@ const Home: React.FC<HomeProps> = ({ user }) => {
                 </Container>
             </section>
 
-{/* Featured Listings Preview */}
-            <section className="py-5" style={{ background: 'linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%)' }}>
+            {/* Trust Stats Bar */}
+            <Container className="my-5 mt-n5 position-relative" style={{ zIndex: 10 }}>
+                <Card className="border-0 shadow-lg rounded-5 py-4 px-2" style={{ marginTop: '-60px', backgroundColor: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(10px)' }}>
+                    <Row className="text-center align-items-center">
+                        <Col md={3} className="border-end border-light">
+                            <h2 className="fw-bold text-primary mb-0">$2.5B+</h2>
+                            <small className="text-muted text-uppercase fw-bold">Property Value</small>
+                        </Col>
+                        <Col md={3} className="border-end border-light">
+                            <h2 className="fw-bold text-primary mb-0">24k+</h2>
+                            <small className="text-muted text-uppercase fw-bold">Properties Sold</small>
+                        </Col>
+                        <Col md={3} className="border-end border-light">
+                            <h2 className="fw-bold text-primary mb-0">99%</h2>
+                            <small className="text-muted text-uppercase fw-bold">Client Support</small>
+                        </Col>
+                        <Col md={3}>
+                            <h2 className="fw-bold text-primary mb-0">15+</h2>
+                            <small className="text-muted text-uppercase fw-bold">Years Experience</small>
+                        </Col>
+                    </Row>
+                </Card>
+            </Container>
+
+            {/* Featured Listings Section */}
+            <section className="py-5">
                 <Container>
-                    <div className="text-center mb-5">
-                        <motion.h2 
-                            className="fw-bold" 
-                            style={{ fontSize: '2.5rem', background: 'linear-gradient(135deg, #0066ff 0%, #0099ff 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}
-                            initial={{ opacity: 0, y: -30 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.6 }}
-                        >
-                            Featured Properties
-                        </motion.h2>
-                        <p className="text-muted">Explore top trending verified listings</p>
+                    <div className="d-flex justify-content-between align-items-end mb-5">
+                        <div>
+                            <h6 className="text-primary fw-bold text-uppercase mb-2" style={{ letterSpacing: '2px' }}>Recommendations</h6>
+                            <h2 className="display-6 fw-bold text-dark">Featured Collections</h2>
+                        </div>
+                        <Button variant="link" className="text-primary text-decoration-none fw-bold">View All Listings <ArrowRight size={18} /></Button>
                     </div>
+
                     <Row>
                         {[
                             {
@@ -81,100 +143,46 @@ const Home: React.FC<HomeProps> = ({ user }) => {
                                 price: '₹ 2.5 Cr',
                                 image: 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80',
                                 badge: 'House',
-                                badgeColor: '#FF6B5B',
-                                badgeBg: '#FFE5E0'
+                                color: '#0066ff'
                             },
                             {
                                 type: 'Agricultural Farmland',
                                 location: 'Pune, India',
                                 price: '₹ 85 L',
-                                image: 'https://images.pexels.com/photos/6216870/pexels-photo-6216870.jpeg?_gl=1*1v4si8g*_ga*ODQ2NTQwNjE0LjE3Njk0MTMyNzI.*_ga_8JE65Q40S6*czE3Njk0MTMyNzIkbzEkZzAkdDE3Njk0MTMyNzIkajYwJGwwJGgw',
+                                image: 'https://images.pexels.com/photos/6216870/pexels-photo-6216870.jpeg?auto=format&fit=crop&w=400&q=80',
                                 badge: 'Farmland',
-                                badgeColor: '#22C55E',
-                                badgeBg: '#DCFCE7'
+                                color: '#22C55E'
                             },
                             {
                                 type: 'Residential Land',
                                 location: 'Bangalore, India',
                                 price: '₹ 1.2 Cr',
-                                image: 'https://www.aakruthiproperties.com/wp-content/uploads/2025/08/Difference-Between-Land-and-Plot-in-Real-Estate.png',
+                                image: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=400&q=80',
                                 badge: 'Land',
-                                badgeColor: '#F59E0B',
-                                badgeBg: '#FEF3C7'
+                                color: '#F59E0B'
                             }
                         ].map((property, index) => (
                             <Col md={4} key={index} className="mb-4">
-                                <motion.div
-                                    whileHover={{ y: -15, rotateZ: 2 }}
-                                    transition={{ type: 'spring', stiffness: 300 }}
-                                >
-                                    <Card className="border-0 h-100 rounded-4 overflow-hidden" style={{ 
-                                        boxShadow: '0 15px 40px rgba(0, 102, 255, 0.15)',
-                                        background: 'linear-gradient(135deg, #ffffff 0%, #fafbff 100%)',
-                                        transition: 'all 0.3s ease'
-                                    }}>
-                                        <div style={{ position: 'relative', overflow: 'hidden' }}>
-                                            <motion.div
-                                                whileHover={{ scale: 1.1 }}
-                                                transition={{ duration: 0.3 }}
-                                                style={{ overflow: 'hidden' }}
-                                            >
-                                                <Card.Img 
-                                                    variant="top" 
-                                                    src={property.image} 
-                                                    height={280} 
-                                                    style={{ objectFit: 'cover', cursor: 'pointer' }} 
-                                                />
-                                            </motion.div>
-                                            <div 
-                                                style={{
-                                                    position: 'absolute',
-                                                    top: '12px',
-                                                    left: '12px',
-                                                    backgroundColor: property.badgeBg,
-                                                    color: property.badgeColor,
-                                                    padding: '6px 16px',
-                                                    borderRadius: '20px',
-                                                    fontSize: '12px',
-                                                    fontWeight: 'bold',
-                                                    letterSpacing: '0.5px'
-                                                }}
-                                            >
+                                <motion.div whileHover={{ y: -10 }} transition={{ duration: 0.3 }}>
+                                    <Card className="border-0 h-100 rounded-5 overflow-hidden shadow-hover" style={{ backgroundColor: '#fff' }}>
+                                        <div className="position-relative">
+                                            <Card.Img variant="top" src={property.image} style={{ height: '280px', objectFit: 'cover' }} />
+                                            <Badge className="position-absolute top-0 start-0 m-3 px-3 py-2 rounded-pill shadow-sm" style={{ backgroundColor: property.color }}>
                                                 {property.badge}
+                                            </Badge>
+                                            <div className="position-absolute bottom-0 end-0 m-3 bg-white px-3 py-1 rounded-pill fw-bold text-dark shadow-sm">
+                                                {property.price}
                                             </div>
                                         </div>
                                         <Card.Body className="p-4">
-                                            <h5 className="fw-bold mb-2" style={{ fontSize: '1.3rem', color: '#1a1a1a' }}>
-                                                {property.type}
-                                            </h5>
-                                            <p className="text-muted small mb-4" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                📍 {property.location}
-                                            </p>
-                                            <div className="d-flex justify-content-between align-items-center pt-3 border-top">
-                                                <span className="fw-bold" style={{ fontSize: '1.1rem', background: `linear-gradient(135deg, ${property.badgeColor} 0%, #0099ff 100%)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-                                                    {property.price}
-                                                </span>
-                                                <Button 
-                                                    variant="light" 
-                                                    size="sm" 
-                                                    className="rounded-circle p-2" 
-                                                    style={{
-                                                        backgroundColor: property.badgeBg,
-                                                        color: property.badgeColor,
-                                                        border: 'none',
-                                                        cursor: 'pointer',
-                                                        transition: 'all 0.3s ease'
-                                                    }}
-                                                    onMouseEnter={(e) => {
-                                                        e.currentTarget.style.transform = 'scale(1.15) rotate(45deg)';
-                                                    }}
-                                                    onMouseLeave={(e) => {
-                                                        e.currentTarget.style.transform = 'scale(1) rotate(0deg)';
-                                                    }}
-                                                >
-                                                    <ArrowRight size={18} />
-                                                </Button>
+                                            <div className="d-flex justify-content-between align-items-start mb-2">
+                                                <h5 className="fw-bold mb-0">{property.type}</h5>
+                                                <div className="text-warning"><Star size={16} fill="currentColor" /> 4.8</div>
                                             </div>
+                                            <p className="text-muted d-flex align-items-center gap-1 mb-4">
+                                                <MapPin size={14} /> {property.location}
+                                            </p>
+                                            <Button variant="outline-primary" className="w-100 rounded-pill py-2 fw-bold">View Details</Button>
                                         </Card.Body>
                                     </Card>
                                 </motion.div>
@@ -184,62 +192,58 @@ const Home: React.FC<HomeProps> = ({ user }) => {
                 </Container>
             </section>
 
-            {/* Features Section */}
-<section className="py-5 bg-light">
-    <Container>
-        <div className="text-center mb-5">
-            <h2 className="fw-bold">Why Choose RealEstateHelper?</h2>
-        </div>
+            {/* Why Choose Us Section */}
+            <section className="py-5 bg-light rounded-top-5">
+                <Container className="py-5">
+                    <Row className="mb-5 justify-content-center text-center">
+                        <Col lg={6}>
+                            <h2 className="fw-bold mb-3 display-6">Unmatched Excellence</h2>
+                            <p className="text-muted">We provide a premium ecosystem for real estate transactions, ensuring security and ease at every step.</p>
+                        </Col>
+                    </Row>
 
-        <Row className="g-4">
-            {[
-                {
-                    icon: "🏠",
-                    title: "Easy Property Search",
-                    text: "Find properties by location, type, and price range",
-                },
-                {
-                    icon: "✔️",
-                    title: "Verified Listings",
-                    text: "All listings are verified and authentic",
-                },
-                {
-                    icon: "👥",
-                    title: "Direct Contact",
-                    text: "Connect directly with buyers to sellers & sellers to buyers",
-                },
-                {
-                    icon: "🔒",
-                    title: "Secure Platform",
-                    text: "Your data is safe and secure with us",
-                },
-            ].map((item, index) => (
-                <Col md={6} lg={3} key={index}>
-                    <motion.div
-                        whileHover={{ y: -8 }}
-                        transition={{ type: "spring", stiffness: 300 }}
-                        className="h-100"
-                    >
-                        <Card className="border-0 shadow-sm h-100 text-center rounded-4 p-3">
-                            <div
-                                className="mx-auto mb-3 d-flex align-items-center justify-content-center rounded-circle bg-light"
-                                style={{ width: 70, height: 70, fontSize: 30 }}
-                            >
-                                {item.icon}
-                            </div>
-                            <Card.Body>
-                                <h5 className="fw-bold">{item.title}</h5>
-                                <p className="text-muted small">{item.text}</p>
-                            </Card.Body>
-                        </Card>
-                    </motion.div>
-                </Col>
-            ))}
-        </Row>
-    </Container>
-</section>
+                    <Row className="g-4">
+                        {[
+                            { icon: <MapPin className="text-primary" />, title: "Smart Search", text: "Advanced filtering to pinpoint your exact needs effortlessly." },
+                            { icon: <ShieldCheck className="text-success" />, title: "Verified Listings", text: "Every property undergoes a rigorous document verification process." },
+                            { icon: <Users className="text-info" />, title: "Direct Connect", text: "Zero middlemen. Direct communication between buyers and sellers." },
+                            { icon: <Zap className="text-warning" />, title: "Fast Closing", text: "Digital workflows that slash transaction times by up to 40%." },
+                        ].map((item, index) => (
+                            <Col md={6} lg={3} key={index}>
+                                <motion.div whileHover={{ scale: 1.05 }} className="h-100">
+                                    <Card className="border-0 shadow-sm h-100 rounded-5 p-4 text-center glass-effect">
+                                        <div className="mx-auto mb-4 bg-white shadow-sm d-flex align-items-center justify-content-center rounded-circle" style={{ width: 80, height: 80 }}>
+                                            {item.icon}
+                                        </div>
+                                        <h5 className="fw-bold mb-3">{item.title}</h5>
+                                        <p className="text-muted mb-0 small px-2">{item.text}</p>
+                                    </Card>
+                                </motion.div>
+                            </Col>
+                        ))}
+                    </Row>
+                </Container>
+            </section>
 
-
+            {/* Final CTA Section */}
+            <section className="py-5">
+                <Container>
+                    <div className="rounded-5 p-5 text-white text-center shadow-lg position-relative overflow-hidden" 
+                        style={{ backgroundColor: '#0066ff', background: 'linear-gradient(45deg, #0052cc 0%, #0066ff 100%)' }}>
+                        <div className="position-relative z-1">
+                            <h2 className="display-5 fw-bold mb-4">Ready to find your next home?</h2>
+                            <p className="lead mb-5 opacity-75">Join thousands of people finding their dream property every day.</p>
+                            <Button as={Link as any} to="/signup" variant="light" size="lg" className="rounded-pill px-5 py-3 fw-bold text-primary shadow">
+                                Create Free Account Today
+                            </Button>
+                        </div>
+                        {/* Abstract circle decoration */}
+                        <div className="position-absolute top-0 end-0 p-5 opacity-25" style={{ transform: 'translate(30%, -30%)' }}>
+                            <div className="rounded-circle border border-white" style={{ width: '400px', height: '400px' }}></div>
+                        </div>
+                    </div>
+                </Container>
+            </section>
         </div>
     );
 };

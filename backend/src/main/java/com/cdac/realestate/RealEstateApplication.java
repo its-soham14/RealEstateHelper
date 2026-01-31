@@ -7,7 +7,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class RealEstateApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(RealEstateApplication.class, args);
+
+        SpringApplication.run(RealEstateApplication.class, args);
 	}
 
 }
