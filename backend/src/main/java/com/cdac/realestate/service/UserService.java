@@ -16,18 +16,23 @@ public class UserService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
     }
 
-    public User updateUserProfile(Long id, User userDetails) {
+    public User updateUserProfile(Long id, com.cdac.realestate.dto.UserUpdateDTO dto) {
         User user = getUserById(id);
 
-        if (userDetails.getName() != null)
-            user.setName(userDetails.getName());
-        if (userDetails.getPhone() != null)
-            user.setPhone(userDetails.getPhone());
-        if (userDetails.getAddress() != null)
-            user.setAddress(userDetails.getAddress());
-        if (userDetails.getCompanyName() != null)
-            user.setCompanyName(userDetails.getCompanyName());
-        // Email and Role usually not editable by user for security in MVP
+        if (dto.getName() != null)
+            user.setName(dto.getName());
+        if (dto.getPhone() != null)
+            user.setPhone(dto.getPhone());
+        if (dto.getAddress() != null)
+            user.setAddress(dto.getAddress());
+        if (dto.getCompanyName() != null)
+            user.setCompanyName(dto.getCompanyName());
+        if (dto.getCity() != null)
+            user.setCity(dto.getCity());
+        if (dto.getState() != null)
+            user.setState(dto.getState());
+        if (dto.getZip() != null)
+            user.setZip(dto.getZip());
 
         return userRepository.save(user);
     }

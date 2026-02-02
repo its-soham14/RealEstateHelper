@@ -27,8 +27,9 @@ public class UserController {
     // Update My Profile
     @PutMapping("/profile")
     @PreAuthorize("isAuthenticated()")
-    public User updateMyProfile(@Valid @RequestBody User user, @AuthenticationPrincipal UserDetailsImpl userDetails) {
-        return userService.updateUserProfile(userDetails.getId(), user);
+    public User updateMyProfile(@Valid @RequestBody com.cdac.realestate.dto.UserUpdateDTO userDto,
+            @AuthenticationPrincipal UserDetailsImpl userDetails) {
+        return userService.updateUserProfile(userDetails.getId(), userDto);
     }
 
     // Get Specific User (For Admin/Public Seller Profile)

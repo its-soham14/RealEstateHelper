@@ -42,7 +42,11 @@ public class User {
     // For Seller specific fields
     private String companyName;
     private String address;
- 
+    private String city;
+    private String state;
+    @Pattern(regexp = "^\\d{6}$", message = "Zip must be 6 digits")
+    private String zip;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 

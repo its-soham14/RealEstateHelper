@@ -10,6 +10,7 @@ interface SellerDashboardProps {
 }
 
 interface PropertyFormState {
+
     id?: number;
     title?: string;
     type: string;
@@ -86,6 +87,20 @@ const SellerDashboard: React.FC<SellerDashboardProps> = ({ user }) => {
     }, [activeTab]);
 
     const handleAddProperty = async () => {
+        // Validation
+        if (!newProperty.title || !newProperty.address || !newProperty.city) {
+            setNotification({ msg: 'Title, Address and City are required.', type: 'danger' });
+            return;
+        }
+        if (Number(newProperty.price) <= 0 || Number(newProperty.area) <= 0) {
+            setNotification({ msg: 'Price and Area must be positive numbers.', type: 'danger' });
+            return;
+        }
+        if (newProperty.type === 'HOUSE' && (Number(newProperty.beds) < 0 || Number(newProperty.baths) < 0)) {
+            setNotification({ msg: 'Beds and Baths cannot be negative.', type: 'danger' });
+            return;
+        }
+
         try {
             const token = localStorage.getItem('token');
             if (newProperty.id) {

@@ -101,25 +101,7 @@ const BuyerDashboard: React.FC<BuyerDashboardProps> = ({ user }) => {
                                         </Form.Select>
                                     </Form.Group>
 
-                                    <Form.Group className="mb-4">
-                                        <Form.Label className="small fw-bold text-uppercase text-muted mb-2">Location</Form.Label>
-                                        <InputGroup size="lg">
-                                            <InputGroup.Text className="bg-light border-light text-muted">
-                                                <MapPin size={18} />
-                                            </InputGroup.Text>
-                                            <Form.Select
-                                                value={searchQuery}
-                                                onChange={(e) => setSearchQuery(e.target.value)}
-                                                className="border-light bg-light rounded-end-3 fs-6"
-                                            >
-                                                <option value="">All Cities</option>
-                                                <option value="Mumbai">Mumbai</option>
-                                                <option value="Delhi">Delhi</option>
-                                                <option value="Bangalore">Bangalore</option>
-                                                <option value="Hyderabad">Hyderabad</option>
-                                            </Form.Select>
-                                        </InputGroup>
-                                    </Form.Group>
+
 
                                     <Form.Group className="mb-4">
                                         <Form.Label className="small fw-bold text-uppercase text-muted mb-3">Price Range (₹)</Form.Label>
@@ -229,8 +211,7 @@ const BuyerDashboard: React.FC<BuyerDashboardProps> = ({ user }) => {
                                                     <div>
                                                         <h5 className="fw-bold mb-1 text-dark">{b.property.title}</h5>
                                                         <div className="d-flex gap-3 small text-muted">
-                                                            <span><strong>ID:</strong> {b.transactionId}</span>
-                                                            <span>•</span>
+
                                                             <span>{new Date(b.paymentDate).toLocaleDateString(undefined, { dateStyle: 'long' })}</span>
                                                         </div>
                                                     </div>

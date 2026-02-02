@@ -27,6 +27,9 @@ export interface User {
     phone?: string;
     address?: string;
     companyName?: string;
+    city?: string;
+    state?: string;
+    zip?: string;
 }
 
 function App() {

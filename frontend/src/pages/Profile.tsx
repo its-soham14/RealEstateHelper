@@ -24,7 +24,30 @@ const Profile: React.FC<ProfileProps> = ({ user, setUser }) => {
     const [notification, setNotification] = useState<{ msg: string; type: string } | null>(null);
 
     useEffect(() => {
+        const fetchProfile = async () => {
+            try {
+                const token = localStorage.getItem('token');
+                const res = await axios.get('http://localhost:8081/api/users/profile', {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                const u = res.data;
+                setFormData({
+                    name: u.name || '',
+                    phone: u.phone || '',
+                    city: u.city || '',
+                    state: u.state || '',
+                    address: u.address || '',
+                    zip: u.zip || '',
+                    companyName: u.companyName || ''
+                });
+                // Update global user state seamlessly if needed, but form is priority
+            } catch (e) {
+                console.error("Failed to fetch profile", e);
+            }
+        };
+
         if (user) {
+            // Initial load from props (fast)
             setFormData({
                 name: user.name || '',
                 phone: user.phone || '',
@@ -34,8 +57,10 @@ const Profile: React.FC<ProfileProps> = ({ user, setUser }) => {
                 zip: (user as any).zip || '',
                 companyName: user.companyName || ''
             });
+            // Then fetch fresh data (authoritative)
+            fetchProfile();
         }
-    }, [user]);
+    }, [user.id]); // Dependency on ID to prevent loops
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -44,6 +69,28 @@ const Profile: React.FC<ProfileProps> = ({ user, setUser }) => {
     // ✅ ONLY save when Save Changes clicked
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Validation
+        if (!formData.name.trim()) {
+            setNotification({ msg: 'Name cannot be empty.', type: 'danger' });
+            return;
+        }
+        if (!/^\d{10}$/.test(formData.phone)) {
+            setNotification({ msg: 'Phone number must be exactly 10 digits.', type: 'danger' });
+            return;
+        }
+        if (formData.zip && !/^\d{6}$/.test(formData.zip)) {
+            setNotification({ msg: 'Zip code must be 6 digits.', type: 'danger' });
+            return;
+        }
+
+        const alphaRegex = /^[a-zA-Z\s]+$/;
+        if ((formData.city && !alphaRegex.test(formData.city)) ||
+            (formData.state && !alphaRegex.test(formData.state)) ||
+            (formData.address && !alphaRegex.test(formData.address))) {
+            setNotification({ msg: 'Address, City, and State must contain only alphabets.', type: 'danger' });
+            return;
+        }
 
         try {
             const token = localStorage.getItem('token');
