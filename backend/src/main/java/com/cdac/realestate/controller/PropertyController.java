@@ -36,19 +36,49 @@ public class PropertyController {
         return propertyService.getPropertyById(id);
     }
 
-    // Seller: Add Property
-    @PostMapping
+    @Autowired
+    com.cdac.realestate.service.FileStorageService fileStorageService;
+
+    @Autowired
+    com.cdac.realestate.service.EmailService emailService;
+
+    // Seller: Add Property with Image
+    @PostMapping(consumes = { org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE })
     @PreAuthorize("hasAuthority('SELLER')")
-    public Property addProperty(@Valid @RequestBody Property property,
+    public Property addProperty(
+            @RequestPart("property") @Valid Property property,
+            @RequestPart(value = "image", required = false) org.springframework.web.multipart.MultipartFile image,
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
-        return propertyService.addProperty(property, userDetails.getId());
+
+        if (image != null && !image.isEmpty()) {
+            String filename = fileStorageService.store(image);
+            // Store full URL so frontend can display it easily
+            String fileUrl = "http://localhost:8081/uploads/" + filename;
+            property.setImages(fileUrl);
+        }
+
+        Property savedProperty = propertyService.addProperty(property, userDetails.getId());
+
+        // Send Email
+        emailService.sendPropertyAddedEmail(userDetails.getUsername(), userDetails.getName(), savedProperty.getTitle());
+
+        return savedProperty;
     }
 
     // Seller: Update Property
-    @PutMapping("/{id}")
+    @PutMapping(value = "/{id}", consumes = { org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE })
     @PreAuthorize("hasAuthority('SELLER')")
-    public Property updateProperty(@PathVariable Long id, @Valid @RequestBody Property property,
+    public Property updateProperty(@PathVariable Long id,
+            @RequestPart("property") @Valid Property property,
+            @RequestPart(value = "image", required = false) org.springframework.web.multipart.MultipartFile image,
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
+
+        if (image != null && !image.isEmpty()) {
+            String filename = fileStorageService.store(image);
+            String fileUrl = "http://localhost:8081/uploads/" + filename;
+            property.setImages(fileUrl);
+        }
+
         return propertyService.updateProperty(id, property, userDetails.getId());
     }
 
@@ -81,6 +111,18 @@ public class PropertyController {
     public Property updateStatus(@PathVariable Long id,
             @RequestParam Property.PropertyStatus status,
             @RequestParam(required = false) String reason) {
-        return propertyService.updateStatus(id, status, reason);
+        Property updatedProperty = propertyService.updateStatus(id, status, reason);
+
+        // Send Status Email
+        if (updatedProperty.getSeller() != null) {
+            emailService.sendPropertyStatusEmail(
+                    updatedProperty.getSeller().getEmail(),
+                    updatedProperty.getSeller().getName(),
+                    updatedProperty.getTitle(),
+                    status.name(),
+                    reason);
+        }
+
+        return updatedProperty;
     }
 }

@@ -160,8 +160,8 @@ const BuyerDashboard: React.FC<BuyerDashboardProps> = ({ user }) => {
                         className="mb-4 custom-tabs border-0"
                         onSelect={() => { fetchProperties(); fetchWishlist(); }}
                     >
-                        <Tab eventKey="search" title={<span><Home size={18} className="me-2" /> Browse</span>}>
-                            <Row className="g-4">
+                        <Tab eventKey="search" title={<span><Home size={18} className="me-2" /> Properties</span>}>
+                            <Row className="g-4" style={{ minHeight: '600px' }}>
                                 {properties.map((property: any) => (
                                     <Col md={6} key={property.id}>
                                         <div className="h-100 transform-hover">

@@ -32,6 +32,9 @@ public class AuthController {
     @Autowired
     JwtUtils jwtUtils;
 
+    @Autowired
+    com.cdac.realestate.service.EmailService emailService;
+
     @PostMapping("/login")
     public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
         Authentication authentication = authenticationManager.authenticate(
@@ -71,6 +74,9 @@ public class AuthController {
 
         userRepository.save(user);
 
+        // Send Welcome Email
+        emailService.sendWelcomeEmail(user.getEmail(), user.getName());
+
         return ResponseEntity.ok("User registered successfully!");
     }
 
@@ -108,6 +114,9 @@ public class AuthController {
                 user.setPhone("0000000000");
 
                 userRepository.save(user);
+
+                // Send Welcome Email for Google Signup
+                emailService.sendWelcomeEmail(user.getEmail(), user.getName());
             }
 
             // 4. Generate JWT

@@ -24,6 +24,7 @@ interface PropertyFormState {
     description: string;
     images: string;
     status?: string;
+    imageFile?: File | null;
 }
 
 const SellerDashboard: React.FC<SellerDashboardProps> = ({ user }) => {
@@ -46,6 +47,7 @@ const SellerDashboard: React.FC<SellerDashboardProps> = ({ user }) => {
         title: ''
     });
     const [notification, setNotification] = useState<{ msg: string, type: string } | null>(null);
+    const [modalError, setModalError] = useState<string | null>(null);
 
     const fetchMyProperties = async () => {
         try {
@@ -87,32 +89,68 @@ const SellerDashboard: React.FC<SellerDashboardProps> = ({ user }) => {
     }, [activeTab]);
 
     const handleAddProperty = async () => {
-        // Validation
-        if (!newProperty.title || !newProperty.address || !newProperty.city) {
-            setNotification({ msg: 'Title, Address and City are required.', type: 'danger' });
+        setModalError(null);
+
+        // Strict Validation
+        if (!newProperty.title || !newProperty.address || !newProperty.city || !newProperty.description) {
+            setModalError('All fields including Description are required.');
             return;
         }
+
+        // City Validation (Alphabets only)
+        const cityRegex = /^[a-zA-Z\s]+$/;
+        if (!cityRegex.test(newProperty.city)) {
+            setModalError('City name must contain only alphabets.');
+            return;
+        }
+
         if (Number(newProperty.price) <= 0 || Number(newProperty.area) <= 0) {
-            setNotification({ msg: 'Price and Area must be positive numbers.', type: 'danger' });
+            setModalError('Price and Area must be positive numbers.');
             return;
         }
+
         if (newProperty.type === 'HOUSE' && (Number(newProperty.beds) < 0 || Number(newProperty.baths) < 0)) {
-            setNotification({ msg: 'Beds and Baths cannot be negative.', type: 'danger' });
+            setModalError('Beds and Baths cannot be negative.');
+            return;
+        }
+
+        // Image Validation
+        if (!newProperty.id && !newProperty.imageFile) {
+            setModalError('Property Image is required for new listings.');
             return;
         }
 
         try {
             const token = localStorage.getItem('token');
+            const formData = new FormData();
+
+            // Append property JSON
+            // We strip 'images' from the JSON because it's handled separately or as a URL string in the object if not updating
+            const propertyBlob = new Blob([JSON.stringify(newProperty)], { type: 'application/json' });
+            formData.append('property', propertyBlob);
+
+            // Append Image File if exists
+            if (newProperty.imageFile) {
+                formData.append('image', newProperty.imageFile);
+            }
+
             if (newProperty.id) {
-                // UPDATE Application
-                await axios.put(`http://localhost:8081/api/properties/${newProperty.id}`, newProperty, {
-                    headers: { Authorization: `Bearer ${token}` }
+                // UPDATE Application 
+                // Note: Using PUT with Multipart can be tricky. Ensure backend accepts it.
+                await axios.put(`http://localhost:8081/api/properties/${newProperty.id}`, formData, {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        'Content-Type': 'multipart/form-data'
+                    }
                 });
                 setNotification({ msg: 'Property updated successfully! It is pending re-approval.', type: 'info' });
             } else {
                 // CREATE Application
-                await axios.post('http://localhost:8081/api/properties', newProperty, {
-                    headers: { Authorization: `Bearer ${token}` }
+                await axios.post('http://localhost:8081/api/properties', formData, {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        'Content-Type': 'multipart/form-data'
+                    }
                 });
                 setNotification({ msg: 'Property submitted for approval!', type: 'success' });
             }
@@ -120,8 +158,14 @@ const SellerDashboard: React.FC<SellerDashboardProps> = ({ user }) => {
             fetchMyProperties();
         } catch (e: any) {
             console.error("Error saving property:", e);
-            const errMsg = e.response?.data?.message || 'Failed to save property';
-            setNotification({ msg: `Error: ${errMsg}`, type: 'danger' });
+            const errMsg = e.response?.data?.message || 'Failed to save property. Ensure all fields are valid.';
+            setModalError(errMsg);
+        }
+    };
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            setNewProperty({ ...newProperty, imageFile: e.target.files[0] });
         }
     };
 
@@ -310,9 +354,10 @@ const SellerDashboard: React.FC<SellerDashboardProps> = ({ user }) => {
                     <Modal.Title className="fw-bold">{newProperty.id ? 'Edit Property' : 'Add New Property'}</Modal.Title>
                 </Modal.Header>
                 <Modal.Body className="pt-4">
+                    {modalError && <Alert variant="danger" onClose={() => setModalError(null)} dismissible>{modalError}</Alert>}
                     <Form>
                         <Form.Group className="mb-3">
-                            <Form.Label>Property Title / Headline</Form.Label>
+                            <Form.Label>Property Title / Headline <span className="text-danger">*</span></Form.Label>
                             <Form.Control
                                 placeholder="e.g. Luxurious Villa in Mumbai"
                                 value={newProperty.title || ''}
@@ -337,7 +382,7 @@ const SellerDashboard: React.FC<SellerDashboardProps> = ({ user }) => {
                             </Col>
                             <Col md={6}>
                                 <Form.Group>
-                                    <Form.Label>Price (₹)</Form.Label>
+                                    <Form.Label>Price (₹) <span className="text-danger">*</span></Form.Label>
                                     <Form.Control
                                         type="number"
                                         value={newProperty.price}
@@ -349,7 +394,7 @@ const SellerDashboard: React.FC<SellerDashboardProps> = ({ user }) => {
                         <Row className="mb-3">
                             <Col md={6}>
                                 <Form.Group>
-                                    <Form.Label>City</Form.Label>
+                                    <Form.Label>City <span className="text-danger">*</span></Form.Label>
                                     <Form.Control
                                         value={newProperty.city}
                                         onChange={(e) => setNewProperty({ ...newProperty, city: e.target.value })}
@@ -358,7 +403,7 @@ const SellerDashboard: React.FC<SellerDashboardProps> = ({ user }) => {
                             </Col>
                             <Col md={6}>
                                 <Form.Group>
-                                    <Form.Label>Area (Sqft / Acres)</Form.Label>
+                                    <Form.Label>Area (Sqft / Acres) <span className="text-danger">*</span></Form.Label>
                                     <Form.Control
                                         value={newProperty.area}
                                         onChange={(e) => setNewProperty({ ...newProperty, area: e.target.value })}
@@ -367,7 +412,7 @@ const SellerDashboard: React.FC<SellerDashboardProps> = ({ user }) => {
                             </Col>
                         </Row>
                         <Form.Group className="mb-3">
-                            <Form.Label>Full Address</Form.Label>
+                            <Form.Label>Full Address <span className="text-danger">*</span></Form.Label>
                             <Form.Control
                                 value={newProperty.address}
                                 onChange={(e) => setNewProperty({ ...newProperty, address: e.target.value })}
@@ -397,13 +442,24 @@ const SellerDashboard: React.FC<SellerDashboardProps> = ({ user }) => {
                         )}
 
                         <Form.Group className="mb-3">
-                            <Form.Label>Description</Form.Label>
+                            <Form.Label>Description <span className="text-danger">*</span></Form.Label>
                             <Form.Control as="textarea" rows={3} value={newProperty.description} onChange={(e) => setNewProperty({ ...newProperty, description: e.target.value })} />
                         </Form.Group>
 
+
                         <Form.Group className="mb-3">
-                            <Form.Label>Image URL (Comma separated for multiple)</Form.Label>
-                            <Form.Control value={newProperty.images} onChange={(e) => setNewProperty({ ...newProperty, images: e.target.value })} />
+                            <Form.Label>Property Image (Upload) <span className="text-danger">*</span></Form.Label>
+                            <Form.Control
+                                type="file"
+                                accept="image/*"
+                                onChange={handleFileChange}
+                            />
+                            {newProperty.images && !newProperty.imageFile && (
+                                <div className="mt-2">
+                                    <small className="text-muted">Current Image:</small>
+                                    <img src={newProperty.images} alt="preview" style={{ height: '80px', marginLeft: '10px' }} />
+                                </div>
+                            )}
                         </Form.Group>
                     </Form>
                 </Modal.Body>
