@@ -14,13 +14,9 @@ const defaultCenter = {
     lng: 77.2090
 };
 
-interface PropertyMapProps {
-    location: string;
-}
-
-const PropertyMap: React.FC<PropertyMapProps> = ({ location }) => {
+const PropertyMap = ({ location }) => {
     const [center, setCenter] = useState(defaultCenter);
-    const [map, setMap] = useState<google.maps.Map | null>(null);
+    const [map, setMap] = useState(null);
 
     const { isLoaded, loadError } = useGoogleMaps();
 
@@ -48,11 +44,11 @@ const PropertyMap: React.FC<PropertyMapProps> = ({ location }) => {
         geocodeAddress();
     }, [location, isLoaded, map]);
 
-    const onLoad = useCallback(function callback(map: google.maps.Map) {
+    const onLoad = useCallback(function callback(map) {
         setMap(map);
     }, []);
 
-    const onUnmount = useCallback(function callback(map: google.maps.Map) {
+    const onUnmount = useCallback(function callback(map) {
         setMap(null);
     }, []);
 

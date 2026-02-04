@@ -1,17 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Form, Button, Card, Badge, Tabs, Tab, InputGroup } from 'react-bootstrap';
 import axios from 'axios';
-import type { User } from '../App';
 import PropertyCard from '../components/PropertyCard';
 import PriceRangeSlider from '../components/PriceRangeSlider';
 import { Filter, Search, MapPin, Home, Heart, Calendar, RotateCcw } from 'lucide-react';
 import { useSearch } from '../context/SearchContext';
 
-interface BuyerDashboardProps {
-    user: User;
-}
-
-const BuyerDashboard: React.FC<BuyerDashboardProps> = ({ user }) => {
+const BuyerDashboard = ({ user }) => {
     const [properties, setProperties] = useState([]);
     const [wishlist, setWishlist] = useState([]);
     const [bookings, setBookings] = useState([]);
@@ -26,7 +21,7 @@ const BuyerDashboard: React.FC<BuyerDashboardProps> = ({ user }) => {
     // ... (logic for fetchProperties, fetchWishlist, fetchBookings remains the same)
     const fetchProperties = async () => {
         try {
-            const params: any = {};
+            const params = {};
             if (searchQuery) params.city = searchQuery;
             if (filters.minPrice) params.minPrice = filters.minPrice;
             if (filters.maxPrice) params.maxPrice = filters.maxPrice;
@@ -67,7 +62,7 @@ const BuyerDashboard: React.FC<BuyerDashboardProps> = ({ user }) => {
         fetchBookings();
     }, [filters, searchQuery]);
 
-    const handleFilterChange = (e: any) => {
+    const handleFilterChange = (e) => {
         setFilters({ ...filters, [e.target.name]: e.target.value });
     };
 
@@ -162,7 +157,7 @@ const BuyerDashboard: React.FC<BuyerDashboardProps> = ({ user }) => {
                     >
                         <Tab eventKey="search" title={<span><Home size={18} className="me-2" /> Properties</span>}>
                             <Row className="g-4" style={{ minHeight: '600px' }}>
-                                {properties.map((property: any) => (
+                                {properties.map((property) => (
                                     <Col md={6} key={property.id}>
                                         <div className="h-100 transform-hover">
                                             <PropertyCard property={property} user={user} />
@@ -181,7 +176,7 @@ const BuyerDashboard: React.FC<BuyerDashboardProps> = ({ user }) => {
 
                         <Tab eventKey="wishlist" title={<span><Heart size={18} className="me-2" /> Wishlist</span>}>
                             <Row className="g-4">
-                                {wishlist.map((property: any) => (
+                                {wishlist.map((property) => (
                                     <Col md={6} key={property.id}>
                                         <PropertyCard property={property} user={user} />
                                     </Col>
@@ -200,7 +195,7 @@ const BuyerDashboard: React.FC<BuyerDashboardProps> = ({ user }) => {
                                     <div className="text-center py-5 w-100">
                                         <p className="text-muted">No transactions found.</p>
                                     </div>
-                                ) : bookings.map((b: any) => (
+                                ) : bookings.map((b) => (
                                     <Col xs={12} key={b.id}>
                                         <Card className="border-0 shadow-sm rounded-4 overflow-hidden">
                                             <Card.Body className="p-4 d-md-flex justify-content-between align-items-center">

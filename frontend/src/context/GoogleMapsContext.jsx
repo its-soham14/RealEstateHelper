@@ -1,28 +1,18 @@
 import React, { createContext, useContext } from 'react';
-import type { ReactNode } from 'react';
 import { useJsApiLoader } from '@react-google-maps/api';
 
-interface GoogleMapsContextType {
-    isLoaded: boolean;
-    loadError: Error | undefined;
-}
-
-const GoogleMapsContext = createContext<GoogleMapsContextType>({
+const GoogleMapsContext = createContext({
     isLoaded: false,
     loadError: undefined
 });
 
 export const useGoogleMaps = () => useContext(GoogleMapsContext);
 
-interface GoogleMapsProviderProps {
-    children: ReactNode;
-}
-
 // Libraries to load. Defined outside component to prevent re-renders
-const libraries: ("places" | "drawing" | "geometry" | "visualization")[] = ["places"];
+const libraries = ["places"];
 
-export const GoogleMapsProvider: React.FC<GoogleMapsProviderProps> = ({ children }) => {
-    const [authError, setAuthError] = React.useState<string | null>(null);
+export const GoogleMapsProvider = ({ children }) => {
+    const [authError, setAuthError] = React.useState(null);
 
     const { isLoaded, loadError } = useJsApiLoader({
         id: 'google-map-script',
@@ -32,14 +22,12 @@ export const GoogleMapsProvider: React.FC<GoogleMapsProviderProps> = ({ children
 
     React.useEffect(() => {
         // Global hook for Google Maps auth failure
-        // @ts-ignore
         window.gm_authFailure = () => {
             setAuthError("Google Maps Authentication Failed. Please check API Key and Billing.");
             console.error("Google Maps Authentication Failed");
         };
 
         return () => {
-            // @ts-ignore
             window.gm_authFailure = null;
         }
     }, []);

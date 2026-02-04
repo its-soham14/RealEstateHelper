@@ -2,23 +2,19 @@ import React, { useState } from 'react';
 import { Container, Form, Button, Card, Alert, Row, Col } from 'react-bootstrap';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
-import type { User } from '../App';
 import { motion } from 'framer-motion';
 import { GoogleLogin } from '@react-oauth/google';
-import { Mail, Lock } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 
-interface LoginProps {
-    setCurrentUser: (user: User) => void;
-}
-
-const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
+const Login = ({ setCurrentUser }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [selectedRole, setSelectedRole] = useState('BUYER');
     const [error, setError] = useState('');
     const navigate = useNavigate();
 
-    const handleLogin = async (e: React.FormEvent) => {
+    const handleLogin = async (e) => {
         e.preventDefault();
         try {
             const response = await axios.post('http://localhost:8081/api/auth/login', {
@@ -28,7 +24,7 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
 
             const { token, id, name, role } = response.data;
 
-            const user: User = { id, name, email, role, token };
+            const user = { id, name, email, role, token };
 
             localStorage.setItem('user', JSON.stringify(user));
             localStorage.setItem('token', token);
@@ -37,7 +33,7 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
             if (role === 'BUYER') navigate('/buyer');
             else if (role === 'SELLER') navigate('/seller');
             else if (role === 'ADMIN') navigate('/admin');
-        } catch (err: any) {
+        } catch (err) {
             if (axios.isAxiosError(err) && err.response && err.response.data) {
                 const data = err.response.data;
                 if (typeof data === 'object') {
@@ -131,13 +127,21 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
                                             <Lock size={18} />
                                         </span>
                                         <Form.Control
-                                            type="password"
+                                            type={showPassword ? "text" : "password"}
                                             placeholder="Enter your password"
                                             value={password}
                                             onChange={(e) => setPassword(e.target.value)}
                                             required
-                                            className="border-start-0"
+                                            className="border-start-0 border-end-0"
                                         />
+                                        <Button
+                                            variant="light"
+                                            className="bg-light border-start-0 border-top border-bottom"
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            style={{ borderColor: '#ced4da' }}
+                                        >
+                                            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                        </Button>
                                     </div>
                                 </Form.Group>
 
@@ -163,7 +167,7 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
                                             const response = await axios.post('http://localhost:8081/api/auth/google', { token: credential });
 
                                             const { token, id, name, role, email } = response.data;
-                                            const user: User = { id, name, email, role, token };
+                                            const user = { id, name, email, role, token };
 
                                             localStorage.setItem('user', JSON.stringify(user));
                                             localStorage.setItem('token', token);

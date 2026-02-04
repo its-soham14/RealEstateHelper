@@ -2,14 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Container, Card, Form, Button, Alert, Row, Col, Badge } from 'react-bootstrap';
 import axios from 'axios';
 import { UserCircle, Save, Edit3 } from 'lucide-react';
-import type { User as UserType } from '../App';
 
-interface ProfileProps {
-    user: UserType;
-    setUser: (user: UserType) => void;
-}
-
-const Profile: React.FC<ProfileProps> = ({ user, setUser }) => {
+const Profile = ({ user, setUser }) => {
     const [formData, setFormData] = useState({
         name: '',
         phone: '',
@@ -21,7 +15,7 @@ const Profile: React.FC<ProfileProps> = ({ user, setUser }) => {
     });
 
     const [editMode, setEditMode] = useState(false);
-    const [notification, setNotification] = useState<{ msg: string; type: string } | null>(null);
+    const [notification, setNotification] = useState(null);
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -51,10 +45,10 @@ const Profile: React.FC<ProfileProps> = ({ user, setUser }) => {
             setFormData({
                 name: user.name || '',
                 phone: user.phone || '',
-                city: (user as any).city || '',
-                state: (user as any).state || '',
+                city: user.city || '',
+                state: user.state || '',
                 address: user.address || '',
-                zip: (user as any).zip || '',
+                zip: user.zip || '',
                 companyName: user.companyName || ''
             });
             // Then fetch fresh data (authoritative)
@@ -62,12 +56,12 @@ const Profile: React.FC<ProfileProps> = ({ user, setUser }) => {
         }
     }, [user.id]); // Dependency on ID to prevent loops
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
     // ✅ ONLY save when Save Changes clicked
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
 
         // Validation

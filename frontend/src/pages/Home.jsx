@@ -4,10 +4,6 @@ import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { ArrowRight, CheckCircle, ShieldCheck, MapPin, Zap, Users, Star } from 'lucide-react';
 
-interface HomeProps {
-    user?: any;
-}
-
 // Animation Variants
 const fadeInUp = {
     initial: { opacity: 0, y: 30 },
@@ -15,7 +11,7 @@ const fadeInUp = {
     transition: { duration: 0.6 }
 };
 
-const Home: React.FC<HomeProps> = ({ user }) => {
+const Home = ({ user }) => {
     return (
         <div style={{ backgroundColor: '#fff' }}>
             {/* Hero Section */}
@@ -50,7 +46,7 @@ const Home: React.FC<HomeProps> = ({ user }) => {
                                     Discover verified premium listings. From urban luxury apartments to serene country farmsteads, we connect you to your future.
                                 </p>
                                 <div className="d-flex gap-3 align-items-center">
-                                    <Button as={Link as any} to="/signup" variant="primary" size="lg" className="rounded-pill px-5 py-3 shadow-primary hover-lift border-0" style={{ backgroundColor: '#0066ff' }}>
+                                    <Button as={Link} to="/signup" variant="primary" size="lg" className="rounded-pill px-5 py-3 shadow-primary hover-lift border-0" style={{ backgroundColor: '#0066ff' }}>
                                         Explore Now <ArrowRight className="ms-2" size={20} />
                                     </Button>
                                     <div className="d-flex align-items-center ms-3">
@@ -80,7 +76,6 @@ const Home: React.FC<HomeProps> = ({ user }) => {
                                             className="img-fluid"
                                         />
                                     </div>
-                                    {/* Floating stats card */}
                                     <motion.div 
                                         animate={{ y: [0, -10, 0] }} 
                                         transition={{ repeat: Infinity, duration: 4 }}
@@ -233,11 +228,10 @@ const Home: React.FC<HomeProps> = ({ user }) => {
                         <div className="position-relative z-1">
                             <h2 className="display-5 fw-bold mb-4">Ready to find your next home?</h2>
                             <p className="lead mb-5 opacity-75">Join thousands of people finding their dream property every day.</p>
-                            <Button as={Link as any} to="/signup" variant="light" size="lg" className="rounded-pill px-5 py-3 fw-bold text-primary shadow">
+                            <Button as={Link} to="/signup" variant="light" size="lg" className="rounded-pill px-5 py-3 fw-bold text-primary shadow">
                                 Create Free Account Today
                             </Button>
                         </div>
-                        {/* Abstract circle decoration */}
                         <div className="position-absolute top-0 end-0 p-5 opacity-25" style={{ transform: 'translate(30%, -30%)' }}>
                             <div className="rounded-circle border border-white" style={{ width: '400px', height: '400px' }}></div>
                         </div>

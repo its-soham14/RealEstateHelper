@@ -3,9 +3,9 @@ import { Container, Form, Button, Card, Alert, Row, Col } from 'react-bootstrap'
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { motion } from 'framer-motion';
-import { User, Mail, Lock, Phone, Building2, MapPin } from 'lucide-react';
+import { User, Mail, Lock, Phone, Building2, MapPin, Eye, EyeOff } from 'lucide-react';
 
-const Signup: React.FC = () => {
+const Signup = () => {
     const [formData, setFormData] = useState({
         name: '',
         email: '',
@@ -13,23 +13,25 @@ const Signup: React.FC = () => {
         role: 'BUYER',
         phone: '',
         companyName: '',
+        companyName: '',
         address: ''
     });
+    const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const navigate = useNavigate();
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
-    const handleSignup = async (e: React.FormEvent) => {
+    const handleSignup = async (e) => {
         e.preventDefault();
         try {
             await axios.post('http://localhost:8081/api/auth/signup', formData);
             setSuccess('Registration successful! Redirecting to login...');
             setTimeout(() => navigate('/login'), 2000);
-        } catch (err: any) {
+        } catch (err) {
             if (axios.isAxiosError(err) && err.response && err.response.data) {
                 const data = err.response.data;
                 if (typeof data === 'object') {
@@ -146,13 +148,22 @@ const Signup: React.FC = () => {
                                             <Lock size={18} />
                                         </span>
                                         <Form.Control
-                                            type="password"
+                                            type={showPassword ? "text" : "password"}
                                             name="password"
                                             placeholder="Create password"
                                             onChange={handleChange}
                                             required
-                                            className="border-start-0"
+                                            className="border-start-0 border-end-0"
                                         />
+                                        <Button
+                                            variant="light"
+                                            className="bg-light border-start-0 border-top border-bottom"
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            tabIndex="-1"
+                                            style={{ borderColor: '#ced4da' }}
+                                        >
+                                            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                        </Button>
                                     </div>
                                 </Form.Group>
 

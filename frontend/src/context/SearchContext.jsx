@@ -1,18 +1,13 @@
 import React, { createContext, useState, useContext } from 'react';
 
-interface SearchContextType {
-    searchQuery: string;
-    setSearchQuery: (query: string) => void;
-}
-
-const SearchContext = createContext<SearchContextType>({
+const SearchContext = createContext({
     searchQuery: '',
     setSearchQuery: () => { },
 });
 
 export const useSearch = () => useContext(SearchContext);
 
-export const SearchProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const SearchProvider = ({ children }) => {
     const [searchQuery, setSearchQuery] = useState('');
 
     return (

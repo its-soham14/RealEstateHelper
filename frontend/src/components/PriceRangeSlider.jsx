@@ -1,22 +1,16 @@
 import React, { useCallback, useEffect, useState, useRef } from 'react';
 import './PriceRangeSlider.css';
 
-interface PriceRangeSliderProps {
-    min: number;
-    max: number;
-    onChange: (min: number, max: number) => void;
-}
-
-const PriceRangeSlider: React.FC<PriceRangeSliderProps> = ({ min, max, onChange }) => {
+const PriceRangeSlider = ({ min, max, onChange }) => {
     const [minVal, setMinVal] = useState(min);
     const [maxVal, setMaxVal] = useState(max);
     const minValRef = useRef(min);
     const maxValRef = useRef(max);
-    const range = useRef<HTMLDivElement>(null);
+    const range = useRef(null);
 
     // Convert to percentage
     const getPercent = useCallback(
-        (value: number) => Math.round(((value - min) / (max - min)) * 100),
+        (value) => Math.round(((value - min) / (max - min)) * 100),
         [min, max]
     );
 

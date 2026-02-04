@@ -5,19 +5,14 @@ import { MapPin, ArrowRight, Heart } from 'lucide-react';
 import { motion } from 'framer-motion';
 import axios from 'axios';
 
-interface PropertyCardProps {
-    property: any;
-    user?: any;
-}
-
-const PropertyCard: React.FC<PropertyCardProps> = ({ property, user }) => {
+const PropertyCard = ({ property, user }) => {
     const navigate = useNavigate();
     const { id, title, type, price, address, city, area, beds, baths, images } = property;
     const imageUrl = images ? images.split(',')[0] : 'https://via.placeholder.com/400x300';
     const [isLiked, setIsLiked] = useState(false);
 
     // Dynamic styles based on type (simulating the example provided)
-    const getBadgeStyle = (type: string) => {
+    const getBadgeStyle = (type) => {
         switch (type) {
             case 'FARM': case 'LAND':
                 return { bg: '#DCFCE7', color: '#22C55E', label: type === 'FARM' ? 'Farmland' : 'Land' };
@@ -48,7 +43,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, user }) => {
         } catch (e) { console.error(e); }
     };
 
-    const toggleLike = async (e: React.MouseEvent) => {
+    const toggleLike = async (e) => {
         e.stopPropagation();
         if (!user || user.role !== 'BUYER') {
             // Using alert for simplicity, could be toast or modal

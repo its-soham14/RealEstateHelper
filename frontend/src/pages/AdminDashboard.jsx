@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Table, Button, Tabs, Tab, Badge, Modal, Form } from 'react-bootstrap';
 import axios from 'axios';
-import type { User } from '../App';
 import { Check, X, Shield, Users, Home, CreditCard, ExternalLink, Trash2, Info } from 'lucide-react';
 import PropertyMap from '../components/PropertyMap';
 
@@ -23,7 +22,7 @@ const styles = {
     },
     tableHeader: {
         backgroundColor: '#f8f9fa',
-        textTransform: 'uppercase' as const,
+        textTransform: 'uppercase',
         fontSize: '0.75rem',
         letterSpacing: '1px',
         fontWeight: 700,
@@ -32,11 +31,7 @@ const styles = {
     }
 };
 
-interface AdminDashboardProps {
-    user: User;
-}
-
-const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
+const AdminDashboard = ({ user }) => {
     const [users, setUsers] = useState([]);
     const [pendingProperties, setPendingProperties] = useState([]);
     const [transactions, setTransactions] = useState([]);
@@ -45,9 +40,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
     const [showUserModal, setShowUserModal] = useState(false);
     const [showPropertyModal, setShowPropertyModal] = useState(false);
     const [rejectionReason, setRejectionReason] = useState('');
-    const [selectedPropertyId, setSelectedPropertyId] = useState<number | null>(null);
-    const [selectedUser, setSelectedUser] = useState<any>(null);
-    const [selectedProperty, setSelectedProperty] = useState<any>(null);
+    const [selectedPropertyId, setSelectedPropertyId] = useState(null);
+    const [selectedUser, setSelectedUser] = useState(null);
+    const [selectedProperty, setSelectedProperty] = useState(null);
 
     // ... Logic remains identical to your original code ...
     const fetchUsers = async () => {
@@ -83,7 +78,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
         fetchTransactions();
     }, []);
 
-    const handlePropertyAction = async (id: number, status: string) => {
+    const handlePropertyAction = async (id, status) => {
         if (status === 'REJECTED') {
             setSelectedPropertyId(id);
             setRejectionReason('');
@@ -100,7 +95,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
         }
     };
 
-    const updatePropertyStatus = async (id: number, status: string, reason?: string) => {
+    const updatePropertyStatus = async (id, status, reason) => {
         try {
             const token = localStorage.getItem('token');
             await axios.put(`http://localhost:8081/api/properties/${id}/status`, null, {
@@ -111,9 +106,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
         } catch (e) { console.error(e); }
     };
 
-    const handleViewUser = async (userId: number) => {
+    const handleViewUser = async (userId) => {
         try {
-            const user = users.find((u: any) => u.id === userId);
+            const user = users.find((u) => u.id === userId);
             if (user) {
                 setSelectedUser(user);
                 setShowUserModal(true);
@@ -125,12 +120,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
         } catch (e) { console.error(e); }
     };
 
-    const handleViewProperty = (property: any) => {
+    const handleViewProperty = (property) => {
         setSelectedProperty(property);
         setShowPropertyModal(true);
     };
 
-    const handleDeleteUser = async (id: number) => {
+    const handleDeleteUser = async (id) => {
         if (!window.confirm("Is it okay to delete this user?")) return;
         try {
             const token = localStorage.getItem('token');
@@ -217,7 +212,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {pendingProperties.map((p: any) => (
+                                        {pendingProperties.map((p) => (
                                             <tr key={p.id}>
                                                 <td className="ps-4">
                                                     <div className="fw-bold">{p.seller.name}</div>
@@ -226,7 +221,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
                                                 <td><Badge pill bg="light" className="text-dark border">{p.type}</Badge></td>
                                                 <td>
                                                     <div className="text-truncate" style={{ maxWidth: '200px' }}>{p.address}</div>
-                                                    <small className="text-primary cursor-pointer" style={{cursor: 'pointer'}} onClick={() => handleViewProperty(p)}>View Details</small>
+                                                    <small className="text-primary cursor-pointer" style={{ cursor: 'pointer' }} onClick={() => handleViewProperty(p)}>View Details</small>
                                                 </td>
                                                 <td className="fw-bold text-dark">₹{p.price.toLocaleString()}</td>
                                                 <td className="text-end pe-4">
@@ -260,11 +255,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {users.map((u: any) => (
+                                    {users.map((u) => (
                                         <tr key={u.id}>
                                             <td className="ps-4">
                                                 <div className="d-flex align-items-center">
-                                                    <div className="bg-light rounded-circle p-2 me-3 text-secondary"><Users size={16}/></div>
+                                                    <div className="bg-light rounded-circle p-2 me-3 text-secondary"><Users size={16} /></div>
                                                     <div>
                                                         <div className="fw-bold">{u.name}</div>
                                                         <div className="text-muted small">{u.email}</div>
@@ -304,7 +299,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {transactions.map((t: any) => (
+                                    {transactions.map((t) => (
                                         <tr key={t.id}>
                                             <td className="ps-4">
                                                 <code className="text-muted small">{t.transactionId}</code>
@@ -326,7 +321,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
             </Tabs>
 
             {/* Modals with enhanced styling */}
-            <Modal show={showPropertyModal} onHide={() => setShowPropertyModal(false)} size="lg" centered contentClassName="border-0 shadow-lg" style={{borderRadius: '20px'}}>
+            <Modal show={showPropertyModal} onHide={() => setShowPropertyModal(false)} size="lg" centered contentClassName="border-0 shadow-lg" style={{ borderRadius: '20px' }}>
                 <Modal.Body className="p-0">
                     {selectedProperty && (
                         <div>
@@ -336,8 +331,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
                                     alt="Property"
                                     className="w-100 h-100 object-fit-cover"
                                 />
-                                <Button 
-                                    variant="light" 
+                                <Button
+                                    variant="light"
                                     className="position-absolute top-0 end-0 m-3 rounded-circle shadow-sm"
                                     onClick={() => setShowPropertyModal(false)}
                                 >
@@ -348,16 +343,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
                                 <div className="d-flex justify-content-between align-items-start mb-3">
                                     <div>
                                         <h3 className="fw-bold mb-1">{selectedProperty.title}</h3>
-                                        <p className="text-muted mb-0"><Home size={16} className="me-1"/> {selectedProperty.address}, {selectedProperty.city}</p>
+                                        <p className="text-muted mb-0"><Home size={16} className="me-1" /> {selectedProperty.address}, {selectedProperty.city}</p>
                                     </div>
                                     <h3 className="text-primary fw-bold">₹{selectedProperty.price.toLocaleString()}</h3>
                                 </div>
-                                
+
                                 <Row className="g-3 mb-4 text-center">
-                                    <Col xs={3}><div className="bg-light p-2 rounded"><strong>{selectedProperty.area}</strong><br/><small className="text-muted">Sq.ft</small></div></Col>
-                                    <Col xs={3}><div className="bg-light p-2 rounded"><strong>{selectedProperty.beds || 0}</strong><br/><small className="text-muted">Beds</small></div></Col>
-                                    <Col xs={3}><div className="bg-light p-2 rounded"><strong>{selectedProperty.baths || 0}</strong><br/><small className="text-muted">Baths</small></div></Col>
-                                    <Col xs={3}><div className="bg-light p-2 rounded"><strong>{selectedProperty.type}</strong><br/><small className="text-muted">Type</small></div></Col>
+                                    <Col xs={3}><div className="bg-light p-2 rounded"><strong>{selectedProperty.area}</strong><br /><small className="text-muted">Sq.ft</small></div></Col>
+                                    <Col xs={3}><div className="bg-light p-2 rounded"><strong>{selectedProperty.beds || 0}</strong><br /><small className="text-muted">Beds</small></div></Col>
+                                    <Col xs={3}><div className="bg-light p-2 rounded"><strong>{selectedProperty.baths || 0}</strong><br /><small className="text-muted">Baths</small></div></Col>
+                                    <Col xs={3}><div className="bg-light p-2 rounded"><strong>{selectedProperty.type}</strong><br /><small className="text-muted">Type</small></div></Col>
                                 </Row>
 
                                 <div className="mb-4">

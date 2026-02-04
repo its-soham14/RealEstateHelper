@@ -1,39 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Tabs, Tab, Table, Button, Modal, Form, Row, Col, Alert, Badge, Card } from 'react-bootstrap';
 import axios from 'axios';
-import type { User } from '../App';
 import { Plus, Trash, MessageCircle, Mail, Phone, Heart } from 'lucide-react';
 import PropertyMap from '../components/PropertyMap';
 
-interface SellerDashboardProps {
-    user: User;
-}
-
-interface PropertyFormState {
-
-    id?: number;
-    title?: string;
-    type: string;
-    price: string | number;
-    address: string;
-    city: string;
-    area: string;
-    beds: string | number;
-    baths: string | number;
-    bhk: string;
-    description: string;
-    images: string;
-    status?: string;
-    imageFile?: File | null;
-}
-
-const SellerDashboard: React.FC<SellerDashboardProps> = ({ user }) => {
+const SellerDashboard = ({ user }) => {
     const [activeTab, setActiveTab] = useState('listings');
     const [myProperties, setMyProperties] = useState([]);
     const [leads, setLeads] = useState([]);
     const [transactions, setTransactions] = useState([]);
     const [showAddModal, setShowAddModal] = useState(false);
-    const [newProperty, setNewProperty] = useState<PropertyFormState>({
+    const [newProperty, setNewProperty] = useState({
         type: 'HOUSE',
         price: '',
         address: '',
@@ -46,8 +23,8 @@ const SellerDashboard: React.FC<SellerDashboardProps> = ({ user }) => {
         images: '',
         title: ''
     });
-    const [notification, setNotification] = useState<{ msg: string, type: string } | null>(null);
-    const [modalError, setModalError] = useState<string | null>(null);
+    const [notification, setNotification] = useState(null);
+    const [modalError, setModalError] = useState(null);
 
     const fetchMyProperties = async () => {
         try {
@@ -156,20 +133,20 @@ const SellerDashboard: React.FC<SellerDashboardProps> = ({ user }) => {
             }
             setShowAddModal(false);
             fetchMyProperties();
-        } catch (e: any) {
+        } catch (e) {
             console.error("Error saving property:", e);
             const errMsg = e.response?.data?.message || 'Failed to save property. Ensure all fields are valid.';
             setModalError(errMsg);
         }
     };
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileChange = (e) => {
         if (e.target.files && e.target.files[0]) {
             setNewProperty({ ...newProperty, imageFile: e.target.files[0] });
         }
     };
 
-    const handleDelete = async (id: number) => {
+    const handleDelete = async (id) => {
         if (!window.confirm("Are you sure?")) return;
         try {
             const token = localStorage.getItem('token');
@@ -216,7 +193,7 @@ const SellerDashboard: React.FC<SellerDashboardProps> = ({ user }) => {
                 <Col md={4}>
                     <div className="bg-white p-4 rounded-4 shadow-sm border-start border-4 border-warning">
                         <h5 className="text-muted mb-1">Pending Approval</h5>
-                        <h2 className="fw-bold mb-0">{myProperties.filter((p: any) => p.status === 'PENDING').length}</h2>
+                        <h2 className="fw-bold mb-0">{myProperties.filter((p) => p.status === 'PENDING').length}</h2>
                     </div>
                 </Col>
             </Row>
@@ -230,7 +207,7 @@ const SellerDashboard: React.FC<SellerDashboardProps> = ({ user }) => {
                         </div>
                     ) : (
                         <Row>
-                            {myProperties.map((p: any) => (
+                            {myProperties.map((p) => (
                                 <Col md={6} lg={4} key={p.id} className="mb-4">
                                     <div className="bg-white rounded-4 shadow-sm overflow-hidden h-100 border">
                                         <div className="position-relative" style={{ height: '200px' }}>
@@ -292,7 +269,7 @@ const SellerDashboard: React.FC<SellerDashboardProps> = ({ user }) => {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {leads.map((l: any) => (
+                                        {leads.map((l) => (
                                             <tr key={l.id}>
                                                 <td className="ps-4 fw-medium py-3">{l.property.title}</td>
                                                 <td className="py-3">{l.user.name}</td>
@@ -328,7 +305,7 @@ const SellerDashboard: React.FC<SellerDashboardProps> = ({ user }) => {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {transactions.map((t: any) => (
+                                        {transactions.map((t) => (
                                             <tr key={t.id}>
                                                 <td><small className="font-monospace">{t.transactionId}</small></td>
                                                 <td>{t.property.title}</td>

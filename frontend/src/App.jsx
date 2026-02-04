@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { SearchProvider } from './context/SearchContext';
 import { GoogleMapsProvider } from './context/GoogleMapsContext';
@@ -17,23 +17,8 @@ import AdminDashboard from './pages/AdminDashboard';
 import PropertyDetails from './pages/PropertyDetails';
 import Profile from './pages/Profile';
 
-// Interfaces
-export interface User {
-    id: number;
-    name: string;
-    email: string;
-    role: 'BUYER' | 'SELLER' | 'ADMIN';
-    token?: string;
-    phone?: string;
-    address?: string;
-    companyName?: string;
-    city?: string;
-    state?: string;
-    zip?: string;
-}
-
 function App() {
-    const [currentUser, setCurrentUser] = useState<User | null>(null);
+    const [currentUser, setCurrentUser] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {

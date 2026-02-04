@@ -2,20 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Button, Badge, Carousel, Modal, Form, Alert, Card } from 'react-bootstrap';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
-import type { User } from '../App';
 import { MapPin, Bed, Bath, Hash, CheckCircle, CreditCard, MessageCircle, Phone, Mail, ArrowLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
 import PropertyMap from '../components/PropertyMap';
 
-interface PropertyDetailsProps {
-    user: User | null;
-}
-
-const PropertyDetails: React.FC<PropertyDetailsProps> = ({ user }) => {
+const PropertyDetails = ({ user }) => {
     const { id } = useParams();
     const navigate = useNavigate();
     const location = useLocation();
-    const [property, setProperty] = useState<any>(null);
+    const [property, setProperty] = useState(null);
     const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [contactStatus, setContactStatus] = useState('');
     const [paymentStatus, setPaymentStatus] = useState('');
