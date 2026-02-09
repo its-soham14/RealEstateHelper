@@ -47,6 +47,13 @@ public class User {
     @Pattern(regexp = "^\\d{6}$", message = "Zip must be 6 digits")
     private String zip;
 
+    // Email Verification Fields
+    private String otp;
+    private LocalDateTime otpExpiry;
+
+    @Column(nullable = false)
+    private boolean isVerified = false;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 

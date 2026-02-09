@@ -1,6 +1,7 @@
 package com.cdac.realestate.controller;
 
 import com.cdac.realestate.dto.AuthDtos.*;
+import com.cdac.realestate.dto.OtpVerificationRequest;
 import com.cdac.realestate.entity.User;
 import com.cdac.realestate.repository.UserRepository;
 import com.cdac.realestate.security.JwtUtils;
@@ -37,6 +38,12 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
+        // Check if user is verified (Skip for ADMIN - strict requirement)
+        User user = userRepository.findByEmail(loginRequest.getEmail()).orElse(null);
+        if (user != null && !user.isVerified() && user.getRole() != User.Role.ADMIN) {
+            return ResponseEntity.badRequest().body("Error: Email is not verified. Please verify your email first.");
+        }
+
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(loginRequest.getEmail(), loginRequest.getPassword()));
 
@@ -72,12 +79,52 @@ public class AuthController {
         user.setCompanyName(signUpRequest.getCompanyName());
         user.setAddress(signUpRequest.getAddress());
 
+        if (user.getRole() == User.Role.ADMIN) {
+            user.setVerified(true);
+            userRepository.save(user);
+            return ResponseEntity.ok("User registered successfully!");
+        }
+
+        // Generate OTP
+        String otp = String.format("%06d", new java.util.Random().nextInt(999999));
+        user.setOtp(otp);
+        user.setOtpExpiry(java.time.LocalDateTime.now().plusMinutes(10));
+        user.setVerified(false);
+
         userRepository.save(user);
 
-        // Send Welcome Email
-        emailService.sendWelcomeEmail(user.getEmail(), user.getName());
+        // Send OTP Email
+        emailService.sendOtpEmail(user.getEmail(), user.getName(), otp);
 
-        return ResponseEntity.ok("User registered successfully!");
+        return ResponseEntity.ok("User registered successfully! Please check your email for OTP.");
+    }
+
+    @PostMapping("/verify-otp")
+    public ResponseEntity<?> verifyOtp(@Valid @RequestBody OtpVerificationRequest request) {
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new RuntimeException("Error: User not found."));
+
+        if (user.isVerified()) {
+            return ResponseEntity.badRequest().body("Error: User is already verified.");
+        }
+
+        if (user.getOtp() == null || !user.getOtp().equals(request.getOtp())) {
+            return ResponseEntity.badRequest().body("Error: Invalid OTP.");
+        }
+
+        if (user.getOtpExpiry().isBefore(java.time.LocalDateTime.now())) {
+            return ResponseEntity.badRequest().body("Error: OTP has expired.");
+        }
+
+        // Verify User
+        user.setVerified(true);
+        user.setOtp(null);
+        user.setOtpExpiry(null);
+        userRepository.save(user);
+
+        // Auto-login (generate token) for convenience
+        // But for now, we'll just indicate success
+        return ResponseEntity.ok("Email verified successfully! You can now login.");
     }
 
     @PostMapping("/google")
@@ -112,6 +159,7 @@ public class AuthController {
 
                 // Placeholder dummy data for required fields
                 user.setPhone("0000000000");
+                user.setVerified(true); // Google users are auto-verified
 
                 userRepository.save(user);
 

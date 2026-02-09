@@ -70,4 +70,17 @@ public class EmailService {
                 "RealEstateHelper Team";
         sendSimpleMessage(to, subject, text);
     }
+
+    @Async
+    public void sendOtpEmail(String to, String name, String otp) {
+        String subject = "Verify Your Email - RealEstateHelper";
+        String text = "Dear " + name + ",\n\n" +
+                "Thank you for signing up with RealEstateHelper.\n" +
+                "Please use the following OTP to verify your email address:\n\n" +
+                "OTP: " + otp + "\n\n" +
+                "This OTP is valid for 10 minutes.\n\n" +
+                "Best Regards,\n" +
+                "RealEstateHelper Team";
+        sendSimpleMessage(to, subject, text);
+    }
 }
