@@ -1,0 +1,15 @@
+# Secrets
+backend/src/main/resources/application-local.properties
+frontend/.env
+frontend/.env.local
+frontend/.env.production
+
+# Build artifacts
+backend/target/
+frontend/dist/
+frontend/node_modules/
+
+# IDE
+.idea/
+.vscode/
+*.iml

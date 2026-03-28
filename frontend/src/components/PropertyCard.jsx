@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { MapPin, ArrowRight, Heart } from 'lucide-react';
 import { motion } from 'framer-motion';
 import axios from 'axios';
+import API_BASE_URL from '../config/api';
 
 const PropertyCard = ({ property, user }) => {
     const navigate = useNavigate();
@@ -35,7 +36,7 @@ const PropertyCard = ({ property, user }) => {
         try {
             const token = localStorage.getItem('token');
             if (token) {
-                const res = await axios.get(`http://localhost:8081/api/likes/${id}/check`, {
+                const res = await axios.get(`${API_BASE_URL}/api/likes/${id}/check`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 setIsLiked(res.data);
@@ -52,7 +53,7 @@ const PropertyCard = ({ property, user }) => {
         }
         try {
             const token = localStorage.getItem('token');
-            const res = await axios.post(`http://localhost:8081/api/likes/${id}`, {}, {
+            const res = await axios.post(`${API_BASE_URL}/api/likes/${id}`, {}, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setIsLiked(res.data);

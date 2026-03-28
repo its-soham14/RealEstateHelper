@@ -5,6 +5,7 @@ import axios from 'axios';
 import { MapPin, Bed, Bath, Hash, CheckCircle, CreditCard, MessageCircle, Phone, Mail, ArrowLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
 import PropertyMap from '../components/PropertyMap';
+import API_BASE_URL from '../config/api';
 
 const PropertyDetails = ({ user }) => {
     const { id } = useParams();
@@ -25,7 +26,7 @@ const PropertyDetails = ({ user }) => {
 
             // 2. Fetch from backend if no state
             try {
-                const res = await axios.get(`http://localhost:8081/api/properties/${id}`);
+                const res = await axios.get(`${API_BASE_URL}/api/properties/${id}`);
                 setProperty(res.data);
             } catch (e) {
                 console.error("Failed to fetch property, using mock data");
@@ -53,7 +54,7 @@ const PropertyDetails = ({ user }) => {
         if (!user) return navigate('/login');
         try {
             const token = localStorage.getItem('token');
-            await axios.post(`http://localhost:8081/api/contacts/${id}`, null, {
+            await axios.post(`${API_BASE_URL}/api/contacts/${id}`, null, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setContactStatus('Request Sent Successfully!');
@@ -65,7 +66,7 @@ const PropertyDetails = ({ user }) => {
     const handlePayment = async () => {
         try {
             const token = localStorage.getItem('token');
-            await axios.post(`http://localhost:8081/api/transactions/book/${id}`, null, {
+            await axios.post(`${API_BASE_URL}/api/transactions/book/${id}`, null, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setPaymentStatus('Payment Successful! Transaction ID generated.');

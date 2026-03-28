@@ -16,7 +16,7 @@ export const GoogleMapsProvider = ({ children }) => {
 
     const { isLoaded, loadError } = useJsApiLoader({
         id: 'google-map-script',
-        googleMapsApiKey: "AIzaSyBo_lWoM6oRas7lmykFmFdtc2dyQYPfNlc",
+        googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
         libraries: libraries
     });
 

@@ -3,6 +3,7 @@ import { Container, Row, Col, Card, Table, Button, Tabs, Tab, Badge, Modal, Form
 import axios from 'axios';
 import { Check, X, Shield, Users, Home, CreditCard, ExternalLink, Trash2, Info } from 'lucide-react';
 import PropertyMap from '../components/PropertyMap';
+import API_BASE_URL from '../config/api';
 
 // Custom styles for a premium look
 const styles = {
@@ -48,7 +49,7 @@ const AdminDashboard = ({ user }) => {
     const fetchUsers = async () => {
         try {
             const token = localStorage.getItem('token');
-            const res = await axios.get('http://localhost:8081/api/admin/users', { headers: { Authorization: `Bearer ${token}` } });
+            const res = await axios.get(`${API_BASE_URL}/api/admin/users`, { headers: { Authorization: `Bearer ${token}` } });
             setUsers(res.data);
         } catch (e) { console.error(e); }
     };
@@ -56,7 +57,7 @@ const AdminDashboard = ({ user }) => {
     const fetchPendingProperties = async () => {
         try {
             const token = localStorage.getItem('token');
-            const res = await axios.get('http://localhost:8081/api/properties/pending', { headers: { Authorization: `Bearer ${token}` } });
+            const res = await axios.get(`${API_BASE_URL}/api/properties/pending`, { headers: { Authorization: `Bearer ${token}` } });
             setPendingProperties(res.data);
         } catch (e) { console.error(e); }
     };
@@ -64,7 +65,7 @@ const AdminDashboard = ({ user }) => {
     const fetchTransactions = async () => {
         try {
             const token = localStorage.getItem('token');
-            const res = await axios.get('http://localhost:8081/api/transactions/all', { headers: { Authorization: `Bearer ${token}` } });
+            const res = await axios.get(`${API_BASE_URL}/api/transactions/all`, { headers: { Authorization: `Bearer ${token}` } });
             setTransactions(res.data);
         } catch (e) {
             console.error(e);
@@ -98,7 +99,7 @@ const AdminDashboard = ({ user }) => {
     const updatePropertyStatus = async (id, status, reason) => {
         try {
             const token = localStorage.getItem('token');
-            await axios.put(`http://localhost:8081/api/properties/${id}/status`, null, {
+            await axios.put(`${API_BASE_URL}/api/properties/${id}/status`, null, {
                 params: { status, reason },
                 headers: { Authorization: `Bearer ${token}` }
             });
@@ -113,7 +114,7 @@ const AdminDashboard = ({ user }) => {
                 setSelectedUser(user);
                 setShowUserModal(true);
             } else {
-                const res = await axios.get(`http://localhost:8081/api/users/${userId}`);
+                const res = await axios.get(`${API_BASE_URL}/api/users/${userId}`);
                 setSelectedUser(res.data);
                 setShowUserModal(true);
             }
@@ -129,7 +130,7 @@ const AdminDashboard = ({ user }) => {
         if (!window.confirm("Is it okay to delete this user?")) return;
         try {
             const token = localStorage.getItem('token');
-            await axios.delete(`http://localhost:8081/api/admin/users/${id}`, {
+            await axios.delete(`${API_BASE_URL}/api/admin/users/${id}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             fetchUsers();

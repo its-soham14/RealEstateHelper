@@ -5,6 +5,7 @@ import PropertyCard from '../components/PropertyCard';
 import PriceRangeSlider from '../components/PriceRangeSlider';
 import { Filter, Search, MapPin, Home, Heart, Calendar, RotateCcw } from 'lucide-react';
 import { useSearch } from '../context/SearchContext';
+import API_BASE_URL from '../config/api';
 
 const BuyerDashboard = ({ user }) => {
     const [properties, setProperties] = useState([]);
@@ -27,7 +28,7 @@ const BuyerDashboard = ({ user }) => {
             if (filters.maxPrice) params.maxPrice = filters.maxPrice;
             if (filters.type) params.type = filters.type;
             if (filters.beds) params.beds = filters.beds;
-            const res = await axios.get('http://localhost:8081/api/properties', { params });
+            const res = await axios.get(`${API_BASE_URL}/api/properties`, { params });
             setProperties(res.data);
         } catch (e) {
             console.error(e);
@@ -39,7 +40,7 @@ const BuyerDashboard = ({ user }) => {
         try {
             const token = localStorage.getItem('token');
             if (!token) return;
-            const res = await axios.get('http://localhost:8081/api/likes/wishlist', {
+            const res = await axios.get(`${API_BASE_URL}/api/likes/wishlist`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setWishlist(res.data);
@@ -49,7 +50,7 @@ const BuyerDashboard = ({ user }) => {
     const fetchBookings = async () => {
         try {
             const token = localStorage.getItem('token');
-            const res = await axios.get('http://localhost:8081/api/transactions/buyer', {
+            const res = await axios.get(`${API_BASE_URL}/api/transactions/buyer`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setBookings(res.data);

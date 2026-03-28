@@ -3,6 +3,7 @@ import { Container, Tabs, Tab, Table, Button, Modal, Form, Row, Col, Alert, Badg
 import axios from 'axios';
 import { Plus, Trash, MessageCircle, Mail, Phone, Heart } from 'lucide-react';
 import PropertyMap from '../components/PropertyMap';
+import API_BASE_URL from '../config/api';
 
 const SellerDashboard = ({ user }) => {
     const [activeTab, setActiveTab] = useState('listings');
@@ -29,7 +30,7 @@ const SellerDashboard = ({ user }) => {
     const fetchMyProperties = async () => {
         try {
             const token = localStorage.getItem('token');
-            const res = await axios.get('http://localhost:8081/api/properties/my-listings', {
+            const res = await axios.get(`${API_BASE_URL}/api/properties/my-listings`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setMyProperties(res.data);
@@ -39,7 +40,7 @@ const SellerDashboard = ({ user }) => {
     const fetchLeads = async () => {
         try {
             const token = localStorage.getItem('token');
-            const res = await axios.get('http://localhost:8081/api/likes/seller-dashboard', {
+            const res = await axios.get(`${API_BASE_URL}/api/likes/seller-dashboard`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setLeads(res.data);
@@ -52,7 +53,7 @@ const SellerDashboard = ({ user }) => {
     const fetchTransactions = async () => {
         try {
             const token = localStorage.getItem('token');
-            const res = await axios.get('http://localhost:8081/api/transactions/seller', {
+            const res = await axios.get(`${API_BASE_URL}/api/transactions/seller`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setTransactions(res.data);
@@ -114,7 +115,7 @@ const SellerDashboard = ({ user }) => {
             if (newProperty.id) {
                 // UPDATE Application 
                 // Note: Using PUT with Multipart can be tricky. Ensure backend accepts it.
-                await axios.put(`http://localhost:8081/api/properties/${newProperty.id}`, formData, {
+                await axios.put(`${API_BASE_URL}/api/properties/${newProperty.id}`, formData, {
                     headers: {
                         Authorization: `Bearer ${token}`,
                         'Content-Type': 'multipart/form-data'
@@ -123,7 +124,7 @@ const SellerDashboard = ({ user }) => {
                 setNotification({ msg: 'Property updated successfully! It is pending re-approval.', type: 'info' });
             } else {
                 // CREATE Application
-                await axios.post('http://localhost:8081/api/properties', formData, {
+                await axios.post(`${API_BASE_URL}/api/properties`, formData, {
                     headers: {
                         Authorization: `Bearer ${token}`,
                         'Content-Type': 'multipart/form-data'
@@ -150,7 +151,7 @@ const SellerDashboard = ({ user }) => {
         if (!window.confirm("Are you sure?")) return;
         try {
             const token = localStorage.getItem('token');
-            await axios.delete(`http://localhost:8081/api/properties/${id}`, {
+            await axios.delete(`${API_BASE_URL}/api/properties/${id}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             fetchMyProperties();

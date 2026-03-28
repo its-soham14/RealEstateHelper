@@ -4,6 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { motion } from 'framer-motion';
 import { User, Mail, Lock, Phone, Building2, MapPin, Eye, EyeOff } from 'lucide-react';
+import API_BASE_URL from '../config/api';
 
 const Signup = () => {
     const [formData, setFormData] = useState({
@@ -29,7 +30,7 @@ const Signup = () => {
     const handleSignup = async (e) => {
         e.preventDefault();
         try {
-            await axios.post('http://localhost:8081/api/auth/signup', formData);
+            await axios.post(`${API_BASE_URL}/api/auth/signup`, formData);
 
             setSuccess('Registration successful! Please check your email for OTP.');
             setStep(2); // Move to OTP step
@@ -52,7 +53,7 @@ const Signup = () => {
     const handleVerify = async (e) => {
         e.preventDefault();
         try {
-            await axios.post('http://localhost:8081/api/auth/verify-otp', {
+            await axios.post(`${API_BASE_URL}/api/auth/verify-otp`, {
                 email: formData.email,
                 otp
             });

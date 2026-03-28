@@ -52,9 +52,7 @@ public class PropertyController {
 
         if (image != null && !image.isEmpty()) {
             String filename = fileStorageService.store(image);
-            // Store full URL so frontend can display it easily
-            String fileUrl = "http://localhost:8081/uploads/" + filename;
-            property.setImages(fileUrl);
+            property.setImages(filename);
         }
 
         Property savedProperty = propertyService.addProperty(property, userDetails.getId());
@@ -75,8 +73,7 @@ public class PropertyController {
 
         if (image != null && !image.isEmpty()) {
             String filename = fileStorageService.store(image);
-            String fileUrl = "http://localhost:8081/uploads/" + filename;
-            property.setImages(fileUrl);
+            property.setImages(filename);
         }
 
         return propertyService.updateProperty(id, property, userDetails.getId());

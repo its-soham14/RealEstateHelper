@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Container, Card, Form, Button, Alert, Row, Col, Badge } from 'react-bootstrap';
 import axios from 'axios';
 import { UserCircle, Save, Edit3 } from 'lucide-react';
+import API_BASE_URL from '../config/api';
 
 const Profile = ({ user, setUser }) => {
     const [formData, setFormData] = useState({
@@ -21,7 +22,7 @@ const Profile = ({ user, setUser }) => {
         const fetchProfile = async () => {
             try {
                 const token = localStorage.getItem('token');
-                const res = await axios.get('http://localhost:8081/api/users/profile', {
+                const res = await axios.get(`${API_BASE_URL}/api/users/profile`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 const u = res.data;
@@ -89,7 +90,7 @@ const Profile = ({ user, setUser }) => {
         try {
             const token = localStorage.getItem('token');
             const res = await axios.put(
-                'http://localhost:8081/api/users/profile',
+                `${API_BASE_URL}/api/users/profile`,
                 formData,
                 { headers: { Authorization: `Bearer ${token}` } }
             );

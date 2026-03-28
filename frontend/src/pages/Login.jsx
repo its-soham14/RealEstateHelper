@@ -5,6 +5,7 @@ import axios from 'axios';
 import { motion } from 'framer-motion';
 import { GoogleLogin } from '@react-oauth/google';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import API_BASE_URL from '../config/api';
 
 const Login = ({ setCurrentUser }) => {
     const [email, setEmail] = useState('');
@@ -17,7 +18,7 @@ const Login = ({ setCurrentUser }) => {
     const handleLogin = async (e) => {
         e.preventDefault();
         try {
-            const response = await axios.post('http://localhost:8081/api/auth/login', {
+            const response = await axios.post(`${API_BASE_URL}/api/auth/login`, {
                 email,
                 password
             });
@@ -164,7 +165,7 @@ const Login = ({ setCurrentUser }) => {
                                     onSuccess={async (credentialResponse) => {
                                         try {
                                             const { credential } = credentialResponse;
-                                            const response = await axios.post('http://localhost:8081/api/auth/google', { token: credential });
+                                            const response = await axios.post(`${API_BASE_URL}/api/auth/google`, { token: credential });
 
                                             const { token, id, name, role, email } = response.data;
                                             const user = { id, name, email, role, token };
