@@ -22,6 +22,19 @@ public class PropertyService {
     @Autowired
     UserRepository userRepository;
 
+    @Autowired
+    private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+
+    @jakarta.annotation.PostConstruct
+    public void fixDatabaseEnum() {
+        try {
+            jdbcTemplate.execute("ALTER TABLE properties MODIFY COLUMN type VARCHAR(255)");
+            System.out.println("Successfully updated 'type' column to VARCHAR(255)");
+        } catch (Exception e) {
+            System.err.println("Failed to update 'type' column: " + e.getMessage());
+        }
+    }
+
     public Property addProperty(Property property, Long sellerId) {
         User seller = userRepository.findById(sellerId)
                 .orElseThrow(() -> new RuntimeException("Seller not found"));
@@ -30,8 +43,8 @@ public class PropertyService {
         return propertyRepository.save(property);
     }
 
-    public List<Property> getAllProperties(String city, Double minPrice, Double maxPrice,
-            Property.PropertyType type, Integer beds) {
+    public org.springframework.data.domain.Page<Property> getAllProperties(String city, Double minPrice, Double maxPrice,
+            Property.PropertyType type, Integer beds, org.springframework.data.domain.Pageable pageable) {
 
         Specification<Property> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
@@ -42,7 +55,12 @@ public class PropertyService {
                     cb.equal(root.get("status"), Property.PropertyStatus.SOLD)));
 
             if (StringUtils.hasText(city)) {
-                predicates.add(cb.like(cb.lower(root.get("city")), "%" + city.toLowerCase() + "%"));
+                String searchStr = "%" + city.toLowerCase() + "%";
+                predicates.add(cb.or(
+                        cb.like(cb.lower(root.get("city")), searchStr),
+                        cb.like(cb.lower(root.get("title")), searchStr),
+                        cb.like(cb.lower(root.get("address")), searchStr)
+                ));
             }
             if (minPrice != null) {
                 predicates.add(cb.greaterThanOrEqualTo(root.get("price"), minPrice));
@@ -60,7 +78,7 @@ public class PropertyService {
             return cb.and(predicates.toArray(new Predicate[0]));
         };
 
-        return propertyRepository.findAll(spec);
+        return propertyRepository.findAll(spec, pageable);
     }
 
     public Property getPropertyById(Long id) {
@@ -104,12 +122,12 @@ public class PropertyService {
         property.setBeds(propertyDetails.getBeds());
         property.setBaths(propertyDetails.getBaths());
         property.setBhk(propertyDetails.getBhk());
-        property.setImages(propertyDetails.getImages());
+        property.setAdditionalDetails(propertyDetails.getAdditionalDetails());
 
-        // Reset status to PENDING on edit? Or keep as is? Usually re-approval needed if
-        // critical fields change.
-        // For now, let's keep status but maybe Admin wants to re-verify.
-        // Let's set to PENDING to be safe.
+        if (propertyDetails.getImages() != null && !propertyDetails.getImages().isEmpty()) {
+            property.setImages(propertyDetails.getImages());
+        }
+
         property.setStatus(Property.PropertyStatus.PENDING);
 
         return propertyRepository.save(property);

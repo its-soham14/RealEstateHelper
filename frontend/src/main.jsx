@@ -1,15 +1,28 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import App from './App'
-import 'bootstrap/dist/css/bootstrap.min.css'
+import Lenis from 'lenis'
+import App from './App.jsx'
 import './index.css'
 
-import { GoogleOAuthProvider } from '@react-oauth/google';
+// ── Initialize Lenis smooth scroll ────────────────────────────
+const lenis = new Lenis({
+  duration: 1.2,
+  easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)), // exponential ease-out
+  orientation: 'vertical',
+  smoothWheel: true,
+  wheelMultiplier: 0.9,
+  touchMultiplier: 1.5,
+})
 
+function raf(time) {
+  lenis.raf(time)
+  requestAnimationFrame(raf)
+}
+requestAnimationFrame(raf)
+
+// ── Mount React ────────────────────────────────────────────────
 ReactDOM.createRoot(document.getElementById('app')).render(
-    <React.StrictMode>
-        <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
-            <App />
-        </GoogleOAuthProvider>
-    </React.StrictMode>,
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>,
 )

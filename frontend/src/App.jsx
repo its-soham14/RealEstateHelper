@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { SearchProvider } from './context/SearchContext';
 import { GoogleMapsProvider } from './context/GoogleMapsContext';
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -7,6 +7,8 @@ import './App.css';
 
 // Components
 import Navigation from './components/Navigation';
+import Footer from './components/Footer';
+
 // Pages
 import Home from './pages/Home';
 import Login from './pages/Login';
@@ -16,6 +18,29 @@ import SellerDashboard from './pages/SellerDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import PropertyDetails from './pages/PropertyDetails';
 import Profile from './pages/Profile';
+import ForgotPassword from './pages/ForgotPassword';
+import About from './pages/About';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+
+// Hides navbar on auth pages — must be inside Router to use useLocation
+const AUTH_PATHS = ['/login', '/signup', '/forgot-password'];
+const FOOTER_PATHS = ['/', '/about', '/privacy'];
+
+function AppLayout({ currentUser, logout, children }) {
+    const location = useLocation();
+    const isAuthPage = AUTH_PATHS.includes(location.pathname);
+    const showFooter = FOOTER_PATHS.includes(location.pathname);
+    
+    return (
+        <div className="App" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+            {!isAuthPage && <Navigation currentUser={currentUser} logout={logout} />}
+            <div style={{ flex: 1 }}>
+                {children}
+            </div>
+            {showFooter && <Footer />}
+        </div>
+    );
+}
 
 function App() {
     const [currentUser, setCurrentUser] = useState(null);
@@ -28,7 +53,7 @@ function App() {
                 const user = JSON.parse(userStr);
                 setCurrentUser(user);
             } catch (e) {
-                console.error("Failed to parse user", e);
+                localStorage.removeItem('user');
             }
         }
         setIsLoading(false);
@@ -41,40 +66,38 @@ function App() {
     };
 
     if (isLoading) {
-        return <div className="d-flex justify-content-center align-items-center vh-100">Loading...</div>;
+        return (
+            <div style={{
+                background: '#000', minHeight: '100vh',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: '#fff', fontFamily: 'Inter, sans-serif', fontSize: '1rem',
+            }}>
+                Loading...
+            </div>
+        );
     }
 
     return (
         <GoogleMapsProvider>
             <SearchProvider>
                 <Router>
-                    <div className="App">
-                        <Navigation currentUser={currentUser} logout={logout} />
+                    <AppLayout currentUser={currentUser} logout={logout}>
                         <Routes>
-                            <Route path="/" element={<Home user={currentUser} />} />
-                            <Route path="/login" element={<Login setCurrentUser={setCurrentUser} />} />
-                            <Route path="/signup" element={<Signup />} />
-
-                            {/* Profile Route */}
+                            <Route path="/"        element={<Home user={currentUser} />} />
+                            <Route path="/about"   element={<About />} />
+                            <Route path="/privacy" element={<PrivacyPolicy />} />
+                            <Route path="/login"   element={<Login setCurrentUser={setCurrentUser} />} />
+                            <Route path="/signup"  element={<Signup />} />
+                            <Route path="/forgot-password" element={<ForgotPassword />} />
                             <Route path="/profile" element={currentUser ? <Profile user={currentUser} setUser={setCurrentUser} /> : <Navigate to="/login" />} />
 
-                            {/* Protected Routes */}
-                            <Route
-                                path="/buyer/*"
-                                element={currentUser?.role === 'BUYER' ? <BuyerDashboard user={currentUser} /> : <Navigate to="/login" />}
-                            />
-                            <Route
-                                path="/seller/*"
-                                element={currentUser?.role === 'SELLER' ? <SellerDashboard user={currentUser} /> : <Navigate to="/login" />}
-                            />
-                            <Route
-                                path="/admin/*"
-                                element={currentUser?.role === 'ADMIN' ? <AdminDashboard user={currentUser} /> : <Navigate to="/login" />}
-                            />
+                            <Route path="/buyer/*"  element={currentUser?.role === 'BUYER'  ? <BuyerDashboard  user={currentUser} /> : <Navigate to="/login" />} />
+                            <Route path="/seller/*" element={currentUser?.role === 'SELLER' ? <SellerDashboard user={currentUser} /> : <Navigate to="/login" />} />
+                            <Route path="/admin/*"  element={currentUser?.role === 'ADMIN'  ? <AdminDashboard  user={currentUser} /> : <Navigate to="/login" />} />
 
                             <Route path="/property/:id" element={<PropertyDetails user={currentUser} />} />
                         </Routes>
-                    </div>
+                    </AppLayout>
                 </Router>
             </SearchProvider>
         </GoogleMapsProvider>

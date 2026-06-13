@@ -56,13 +56,36 @@ public class AuthDtos {
         private String name;
         private String email;
         private String role;
+        private boolean isVerified;
 
-        public JwtResponse(String token, Long id, String name, String email, String role) {
+        public JwtResponse(String token, Long id, String name, String email, String role, boolean isVerified) {
             this.token = token;
             this.id = id;
             this.name = name;
             this.email = email;
             this.role = role;
+            this.isVerified = isVerified;
         }
+    }
+
+    @Data
+    public static class ForgotPasswordRequest {
+        @NotBlank(message = "Email is required")
+        @Email(message = "Invalid email format")
+        private String email;
+    }
+
+    @Data
+    public static class ResetPasswordRequest {
+        @NotBlank(message = "Email is required")
+        @Email(message = "Invalid email format")
+        private String email;
+
+        @NotBlank(message = "OTP is required")
+        private String otp;
+
+        @NotBlank(message = "New password is required")
+        @Size(min = 6, message = "Password must be at least 6 characters")
+        private String newPassword;
     }
 }

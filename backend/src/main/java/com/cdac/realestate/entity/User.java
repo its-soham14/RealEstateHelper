@@ -47,6 +47,9 @@ public class User {
     @Pattern(regexp = "^\\d{6}$", message = "Zip must be 6 digits")
     private String zip;
 
+    // Profile Picture
+    private String profilePicture;
+
     // Email Verification Fields
     private String otp;
     private LocalDateTime otpExpiry;

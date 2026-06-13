@@ -1,51 +1,108 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Table, Button, Tabs, Tab, Badge, Modal, Form } from 'react-bootstrap';
 import axios from 'axios';
-import { Check, X, Shield, Users, Home, CreditCard, ExternalLink, Trash2, Info } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Shield, Users, Home, CreditCard, Check, X, Trash2, ChevronRight, Building2 } from 'lucide-react';
 import PropertyMap from '../components/PropertyMap';
 import API_BASE_URL from '../config/api';
 
-// Custom styles for a premium look
-const styles = {
-    card: {
-        border: 'none',
-        borderRadius: '16px',
-        boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
-        transition: 'transform 0.2s ease'
-    },
-    statIcon: {
-        width: '56px',
-        height: '56px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderRadius: '12px'
-    },
-    tableHeader: {
-        backgroundColor: '#f8f9fa',
-        textTransform: 'uppercase',
-        fontSize: '0.75rem',
-        letterSpacing: '1px',
-        fontWeight: 700,
-        color: '#6c757d',
-        borderTop: 'none'
-    }
+const EASE = [0.16, 1, 0.3, 1];
+
+const staggerContainer = {
+    hidden: {},
+    visible: { transition: { staggerChildren: 0.07 } }
+};
+const staggerItem = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: EASE } }
+};
+
+// ── Dark tab ───────────────────────────────────────────────────
+function TabBtn({ active, onClick, label, badge }) {
+    return (
+        <button
+            onClick={onClick}
+            style={{
+                padding: '0.5rem 1.25rem',
+                background: active ? '#fff' : 'transparent',
+                color: active ? '#000' : '#555',
+                border: '1px solid',
+                borderColor: active ? '#fff' : '#222',
+                borderRadius: 100,
+                fontFamily: 'var(--font-sans)',
+                fontWeight: 600,
+                fontSize: '0.85rem',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                display: 'flex', alignItems: 'center', gap: '0.5rem',
+            }}
+        >
+            {label}
+            {badge !== undefined && (
+                <span style={{ background: active ? '#000' : '#222', color: active ? '#fff' : '#888', borderRadius: 100, fontSize: '0.7rem', padding: '1px 7px', fontWeight: 700 }}>
+                    {badge}
+                </span>
+            )}
+        </button>
+    );
+}
+
+// ── Stat card ─────────────────────────────────────────────────
+function StatCard({ icon: Icon, label, value, delay }) {
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, ease: EASE, delay }}
+            style={{
+                background: '#111', border: '1px solid #1a1a1a', borderRadius: 12,
+                padding: '1.5rem', flex: '1 1 200px',
+            }}
+        >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem' }}>
+                <div style={{ width: 44, height: 44, background: '#1a1a1a', border: '1px solid #2a2a2a', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Icon size={20} color="#fff" />
+                </div>
+                <div>
+                    <div style={{ color: '#555', fontSize: '0.72rem', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>{label}</div>
+                    <div style={{ color: '#fff', fontSize: '1.75rem', fontWeight: 900, letterSpacing: '-0.03em', lineHeight: 1 }}>{value}</div>
+                </div>
+            </div>
+        </motion.div>
+    );
+}
+
+// ── Dark table ────────────────────────────────────────────────
+const thStyle = {
+    padding: '0.75rem 1.25rem',
+    color: '#444',
+    fontWeight: 600,
+    fontSize: '0.72rem',
+    letterSpacing: '0.1em',
+    textTransform: 'uppercase',
+    borderBottom: '1px solid #1a1a1a',
+    background: '#050505',
+    textAlign: 'left',
+    whiteSpace: 'nowrap',
+};
+const tdStyle = {
+    padding: '1rem 1.25rem',
+    borderBottom: '1px solid #111',
+    color: '#ccc',
+    fontSize: '0.875rem',
+    verticalAlign: 'middle',
 };
 
 const AdminDashboard = ({ user }) => {
+    const [activeTab, setActiveTab] = useState('moderation');
     const [users, setUsers] = useState([]);
     const [pendingProperties, setPendingProperties] = useState([]);
     const [transactions, setTransactions] = useState([]);
-
     const [showRejectModal, setShowRejectModal] = useState(false);
-    const [showUserModal, setShowUserModal] = useState(false);
     const [showPropertyModal, setShowPropertyModal] = useState(false);
     const [rejectionReason, setRejectionReason] = useState('');
     const [selectedPropertyId, setSelectedPropertyId] = useState(null);
-    const [selectedUser, setSelectedUser] = useState(null);
     const [selectedProperty, setSelectedProperty] = useState(null);
 
-    // ... Logic remains identical to your original code ...
     const fetchUsers = async () => {
         try {
             const token = localStorage.getItem('token');
@@ -67,34 +124,10 @@ const AdminDashboard = ({ user }) => {
             const token = localStorage.getItem('token');
             const res = await axios.get(`${API_BASE_URL}/api/transactions/all`, { headers: { Authorization: `Bearer ${token}` } });
             setTransactions(res.data);
-        } catch (e) {
-            console.error(e);
-            setTransactions([]);
-        }
+        } catch (e) { setTransactions([]); }
     };
 
-    useEffect(() => {
-        fetchUsers();
-        fetchPendingProperties();
-        fetchTransactions();
-    }, []);
-
-    const handlePropertyAction = async (id, status) => {
-        if (status === 'REJECTED') {
-            setSelectedPropertyId(id);
-            setRejectionReason('');
-            setShowRejectModal(true);
-            return;
-        }
-        await updatePropertyStatus(id, status);
-    };
-
-    const submitRejection = async () => {
-        if (selectedPropertyId) {
-            await updatePropertyStatus(selectedPropertyId, 'REJECTED', rejectionReason);
-            setShowRejectModal(false);
-        }
-    };
+    useEffect(() => { fetchUsers(); fetchPendingProperties(); fetchTransactions(); }, []);
 
     const updatePropertyStatus = async (id, status, reason) => {
         try {
@@ -107,290 +140,386 @@ const AdminDashboard = ({ user }) => {
         } catch (e) { console.error(e); }
     };
 
-    const handleViewUser = async (userId) => {
-        try {
-            const user = users.find((u) => u.id === userId);
-            if (user) {
-                setSelectedUser(user);
-                setShowUserModal(true);
-            } else {
-                const res = await axios.get(`${API_BASE_URL}/api/users/${userId}`);
-                setSelectedUser(res.data);
-                setShowUserModal(true);
-            }
-        } catch (e) { console.error(e); }
+    const handleApprove = (id) => updatePropertyStatus(id, 'APPROVED');
+    const handleReject = (property) => {
+        setSelectedPropertyId(property.id);
+        setShowRejectModal(true);
     };
-
-    const handleViewProperty = (property) => {
-        setSelectedProperty(property);
-        setShowPropertyModal(true);
+    const submitRejection = async () => {
+        if (selectedPropertyId) {
+            await updatePropertyStatus(selectedPropertyId, 'REJECTED', rejectionReason);
+            setShowRejectModal(false);
+            setRejectionReason('');
+        }
     };
-
     const handleDeleteUser = async (id) => {
-        if (!window.confirm("Is it okay to delete this user?")) return;
+        if (!window.confirm('Delete this user permanently?')) return;
         try {
             const token = localStorage.getItem('token');
-            await axios.delete(`${API_BASE_URL}/api/admin/users/${id}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            await axios.delete(`${API_BASE_URL}/api/admin/users/${id}`, { headers: { Authorization: `Bearer ${token}` } });
             fetchUsers();
         } catch (e) { console.error(e); }
     };
 
+    const EmptyState = ({ msg }) => (
+        <div style={{ padding: '4rem', textAlign: 'center', color: '#333', fontSize: '0.9rem' }}>{msg}</div>
+    );
+
+    const rolePill = (role) => ({
+        display: 'inline-block',
+        padding: '2px 10px',
+        borderRadius: 100,
+        fontSize: '0.72rem',
+        fontWeight: 700,
+        letterSpacing: '0.1em',
+        textTransform: 'uppercase',
+        background: role === 'ADMIN' ? '#fff' : role === 'SELLER' ? '#1a1a1a' : '#111',
+        color: role === 'ADMIN' ? '#000' : '#888',
+        border: '1px solid',
+        borderColor: role === 'ADMIN' ? '#fff' : '#2a2a2a',
+    });
+
     return (
-        <Container className="py-5">
-            {/* Header Section */}
-            <div className="mb-5 d-flex justify-content-between align-items-end">
-                <div>
-                    <Badge bg="primary-subtle" className="text-primary px-3 py-2 mb-2 rounded-pill">Admin Portal</Badge>
-                    <h1 className="fw-extrabold mb-0" style={{ letterSpacing: '-1px' }}>Dashboard Overview</h1>
-                    <p className="text-muted mb-0">Manage your marketplace, users, and financial records.</p>
+        <div style={{ background: '#000', minHeight: '100vh', paddingTop: 'var(--navbar-height)', fontFamily: 'var(--font-sans)' }}>
+
+            {/* ── Header ─────────────────────────────────────── */}
+            <motion.div
+                initial={{ opacity: 0, y: -16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, ease: EASE }}
+                style={{ borderBottom: '1px solid #1a1a1a', padding: '2rem 2.5rem' }}
+            >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                    <div>
+                        <span style={{ color: '#444', fontSize: '0.72rem', letterSpacing: '0.12em', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>
+                            Admin Portal
+                        </span>
+                        <h1 style={{ color: '#fff', fontSize: 'clamp(1.75rem, 3vw, 2.5rem)', fontWeight: 900, letterSpacing: '-0.04em', lineHeight: 1, margin: 0 }}>
+                            Control Centre
+                        </h1>
+                    </div>
+                    <div style={{ width: 48, height: 48, background: '#111', border: '1px solid #2a2a2a', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Shield size={22} color="#fff" />
+                    </div>
                 </div>
-                <div className="bg-white p-2 rounded-circle shadow-sm border">
-                    <Shield size={28} className="text-primary" />
+            </motion.div>
+
+            <div style={{ padding: '2rem 2.5rem' }}>
+
+                {/* ── Stat Cards ─────────────────────────────── */}
+                <div style={{ display: 'flex', gap: '1rem', marginBottom: '2.5rem', flexWrap: 'wrap' }}>
+                    <StatCard icon={Users}      label="Total Users"      value={users.length}               delay={0} />
+                    <StatCard icon={Building2}  label="Pending Review"   value={pendingProperties.length}   delay={0.08} />
+                    <StatCard icon={CreditCard} label="Transactions"     value={transactions.length}        delay={0.16} />
                 </div>
+
+                {/* ── Tabs ───────────────────────────────────── */}
+                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+                    <TabBtn active={activeTab === 'moderation'}   onClick={() => setActiveTab('moderation')}   label="Property Approval" badge={pendingProperties.length} />
+                    <TabBtn active={activeTab === 'users'}        onClick={() => setActiveTab('users')}        label="Users" badge={users.length} />
+                    <TabBtn active={activeTab === 'transactions'} onClick={() => setActiveTab('transactions')} label="Transactions" badge={transactions.length} />
+                </div>
+
+                {/* ── Tab Content ────────────────────────────── */}
+                <AnimatePresence mode="wait">
+                    <motion.div
+                        key={activeTab}
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -8 }}
+                        transition={{ duration: 0.3, ease: EASE }}
+                    >
+                        {/* MODERATION */}
+                        {activeTab === 'moderation' && (
+                            <div style={{ background: '#0a0a0a', border: '1px solid #1a1a1a', borderRadius: 12, overflow: 'hidden' }}>
+                                {pendingProperties.length === 0 ? <EmptyState msg="✓ No pending listings. All caught up." /> : (
+                                    <div style={{ overflowX: 'auto' }}>
+                                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                            <thead>
+                                                <tr>
+                                                    <th style={thStyle}>Seller</th>
+                                                    <th style={thStyle}>Property</th>
+                                                    <th style={thStyle}>Price</th>
+                                                    <th style={thStyle}>Type</th>
+                                                    <th style={{ ...thStyle, textAlign: 'right' }}>Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <motion.tbody variants={staggerContainer} initial="hidden" animate="visible">
+                                                {pendingProperties.map((p) => (
+                                                    <motion.tr key={p.id} variants={staggerItem} style={{ borderBottom: '1px solid #111' }}>
+                                                        <td style={tdStyle}>
+                                                            <div style={{ color: '#fff', fontWeight: 600 }}>{p.sellerName || 'Unknown'}</div>
+                                                            <div style={{ color: '#444', fontSize: '0.75rem' }}>{p.sellerEmail}</div>
+                                                        </td>
+                                                        <td style={tdStyle}>
+                                                            <div style={{ color: '#ccc', fontWeight: 500, maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                                {p.title || p.address}
+                                                            </div>
+                                                            <button
+                                                                onClick={() => { setSelectedProperty(p); setShowPropertyModal(true); }}
+                                                                style={{ background: 'none', border: 'none', color: '#555', fontSize: '0.72rem', cursor: 'pointer', padding: 0, letterSpacing: '0.06em', display: 'flex', alignItems: 'center', gap: '2px', marginTop: 4 }}
+                                                            >
+                                                                View details <ChevronRight size={10} />
+                                                            </button>
+                                                        </td>
+                                                        <td style={{ ...tdStyle, color: '#fff', fontWeight: 700 }}>₹{p.price?.toLocaleString()}</td>
+                                                        <td style={tdStyle}>
+                                                            <span style={{ background: '#1a1a1a', border: '1px solid #2a2a2a', color: '#888', fontSize: '0.72rem', padding: '2px 8px', borderRadius: 100, fontWeight: 600, letterSpacing: '0.06em' }}>
+                                                                {p.type}
+                                                            </span>
+                                                        </td>
+                                                        <td style={{ ...tdStyle, textAlign: 'right' }}>
+                                                            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                                                                <button
+                                                                    onClick={() => handleApprove(p.id)}
+                                                                    style={{ background: '#fff', color: '#000', border: 'none', borderRadius: 8, padding: '0.45rem 1rem', fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                                                                >
+                                                                    <Check size={13} /> Approve
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleReject(p)}
+                                                                    style={{ background: 'transparent', color: '#555', border: '1px solid #2a2a2a', borderRadius: 8, padding: '0.45rem 0.75rem', fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                                                                >
+                                                                    <X size={13} />
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </motion.tr>
+                                                ))}
+                                            </motion.tbody>
+                                        </table>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* USERS */}
+                        {activeTab === 'users' && (
+                            <div style={{ background: '#0a0a0a', border: '1px solid #1a1a1a', borderRadius: 12, overflow: 'hidden' }}>
+                                <div style={{ overflowX: 'auto' }}>
+                                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                        <thead>
+                                            <tr>
+                                                <th style={thStyle}>User</th>
+                                                <th style={thStyle}>Contact</th>
+                                                <th style={thStyle}>Role</th>
+                                                <th style={{ ...thStyle, textAlign: 'right' }}>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <motion.tbody variants={staggerContainer} initial="hidden" animate="visible">
+                                            {users.map((u) => (
+                                                <motion.tr key={u.id} variants={staggerItem}>
+                                                    <td style={tdStyle}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                                            <div style={{ width: 36, height: 36, background: '#1a1a1a', border: '1px solid #2a2a2a', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: '0.875rem', flexShrink: 0 }}>
+                                                                {u.name?.charAt(0).toUpperCase()}
+                                                            </div>
+                                                            <span style={{ color: '#fff', fontWeight: 600 }}>{u.name}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td style={tdStyle}>
+                                                        <div style={{ color: '#666', fontSize: '0.8rem' }}>{u.email}</div>
+                                                        {u.phone && <div style={{ color: '#444', fontSize: '0.75rem' }}>{u.phone}</div>}
+                                                    </td>
+                                                    <td style={tdStyle}>
+                                                        <span style={rolePill(u.role)}>{u.role}</span>
+                                                    </td>
+                                                    <td style={{ ...tdStyle, textAlign: 'right' }}>
+                                                        {u.role !== 'ADMIN' && (
+                                                            <button
+                                                                onClick={() => handleDeleteUser(u.id)}
+                                                                style={{ background: 'none', border: '1px solid #2a2a2a', color: '#555', borderRadius: 8, padding: '0.35rem 0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontFamily: 'var(--font-sans)', fontSize: '0.8rem', marginLeft: 'auto' }}
+                                                                onMouseEnter={e => { e.currentTarget.style.borderColor = '#ff4444'; e.currentTarget.style.color = '#ff4444'; }}
+                                                                onMouseLeave={e => { e.currentTarget.style.borderColor = '#2a2a2a'; e.currentTarget.style.color = '#555'; }}
+                                                            >
+                                                                <Trash2 size={13} /> Remove
+                                                            </button>
+                                                        )}
+                                                    </td>
+                                                </motion.tr>
+                                            ))}
+                                        </motion.tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* TRANSACTIONS */}
+                        {activeTab === 'transactions' && (
+                            <div style={{ background: '#0a0a0a', border: '1px solid #1a1a1a', borderRadius: 12, overflow: 'hidden' }}>
+                                {transactions.length === 0 ? <EmptyState msg="No transactions yet." /> : (
+                                    <div style={{ overflowX: 'auto' }}>
+                                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                            <thead>
+                                                <tr>
+                                                    <th style={thStyle}>Transaction ID</th>
+                                                    <th style={thStyle}>Property</th>
+                                                    <th style={thStyle}>Parties</th>
+                                                    <th style={thStyle}>Amount (5%)</th>
+                                                    <th style={thStyle}>Date</th>
+                                                </tr>
+                                            </thead>
+                                            <motion.tbody variants={staggerContainer} initial="hidden" animate="visible">
+                                                {transactions.map((t) => (
+                                                    <motion.tr key={t.id} variants={staggerItem}>
+                                                        <td style={tdStyle}>
+                                                            <code style={{ color: '#444', fontSize: '0.72rem', fontFamily: 'monospace' }}>{t.transactionId}</code>
+                                                        </td>
+                                                        <td style={{ ...tdStyle, color: '#ccc', fontWeight: 500, maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                            {t.property?.title}
+                                                        </td>
+                                                        <td style={tdStyle}>
+                                                            <div style={{ color: '#666', fontSize: '0.78rem' }}>B: {t.buyer?.name}</div>
+                                                            <div style={{ color: '#444', fontSize: '0.78rem' }}>S: {t.seller?.name}</div>
+                                                        </td>
+                                                        <td style={{ ...tdStyle, color: '#fff', fontWeight: 700 }}>₹ {t.amount?.toLocaleString()}</td>
+                                                        <td style={{ ...tdStyle, color: '#555', fontSize: '0.8rem' }}>
+                                                            {new Date(t.paymentDate).toLocaleDateString('en-IN')}
+                                                        </td>
+                                                    </motion.tr>
+                                                ))}
+                                            </motion.tbody>
+                                        </table>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </motion.div>
+                </AnimatePresence>
             </div>
 
-            {/* Stats Cards */}
-            <Row className="mb-5 g-4">
-                <Col md={4}>
-                    <Card style={styles.card} className="p-3">
-                        <div className="d-flex align-items-center">
-                            <div style={{ ...styles.statIcon, background: '#e0eaff' }}>
-                                <Users className="text-primary" />
-                            </div>
-                            <div className="ms-3">
-                                <h6 className="text-uppercase fw-bold text-muted mb-1" style={{ fontSize: '0.7rem' }}>Total Users</h6>
-                                <h3 className="fw-bold mb-0">{users.length}</h3>
-                            </div>
-                        </div>
-                    </Card>
-                </Col>
-                <Col md={4}>
-                    <Card style={styles.card} className="p-3">
-                        <div className="d-flex align-items-center">
-                            <div style={{ ...styles.statIcon, background: '#fff4e5' }}>
-                                <Home className="text-warning" />
-                            </div>
-                            <div className="ms-3">
-                                <h6 className="text-uppercase fw-bold text-muted mb-1" style={{ fontSize: '0.7rem' }}>Pending Listings</h6>
-                                <h3 className="fw-bold mb-0 text-warning">{pendingProperties.length}</h3>
-                            </div>
-                        </div>
-                    </Card>
-                </Col>
-                <Col md={4}>
-                    <Card style={styles.card} className="p-3">
-                        <div className="d-flex align-items-center">
-                            <div style={{ ...styles.statIcon, background: '#e7f9ed' }}>
-                                <CreditCard className="text-success" />
-                            </div>
-                            <div className="ms-3">
-                                <h6 className="text-uppercase fw-bold text-muted mb-1" style={{ fontSize: '0.7rem' }}>Live Transactions</h6>
-                                <h3 className="fw-bold mb-0 text-success">{transactions.length}</h3>
-                            </div>
-                        </div>
-                    </Card>
-                </Col>
-            </Row>
+            {/* ── Property Detail Modal ───────────────────────── */}
+            <AnimatePresence>
+                {showPropertyModal && selectedProperty && (
+                    <>
+                        <motion.div
+                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            onClick={() => setShowPropertyModal(false)}
+                            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 1200 }}
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, x: '-50%', y: '-45%' }}
+                            animate={{ opacity: 1, scale: 1, x: '-50%', y: '-50%' }}
+                            exit={{ opacity: 0, scale: 0.95, x: '-50%', y: '-45%' }}
+                            transition={{ duration: 0.3, ease: EASE }}
+                            style={{
+                                position: 'fixed', top: '50%', left: '50%',
+                                background: '#0a0a0a', border: '1px solid #1a1a1a',
+                                borderRadius: 16, width: '90%', maxWidth: 680,
+                                zIndex: 1300, display: 'flex', flexDirection: 'column', overflow: 'hidden', maxHeight: '90vh'
+                            }}
+                        >
+                            <div style={{ overflowY: 'auto', flex: 1, overscrollBehavior: 'contain', scrollBehavior: 'smooth' }}>
+                                <div style={{ position: 'relative', height: 280 }}>
+                                    <img
+                                        src={(() => {
+                                            let imgStr = selectedProperty.images ? selectedProperty.images.split(',')[0].trim() : '';
+                                            if (!imgStr) return 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=800&q=80';
+                                            return imgStr.startsWith('http') ? imgStr : `${API_BASE_URL}/uploads/${imgStr}`;
+                                        })()}
+                                        alt="Property"
+                                        style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'brightness(0.75)' }}
+                                    />
+                                    <button
+                                        onClick={() => setShowPropertyModal(false)}
+                                        style={{ position: 'absolute', top: 12, right: 12, background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '50%', width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', cursor: 'pointer' }}
+                                    >
+                                        <X size={16} />
+                                    </button>
+                                </div>
 
-            {/* Main Tabs Container */}
-            <Tabs defaultActiveKey="moderation" className="custom-tabs mb-4 border-0">
-                <Tab eventKey="moderation" title="Property Approval">
-                    <Card style={styles.card} className="overflow-hidden">
-                        <Card.Body className="p-0">
-                            {pendingProperties.length === 0 ? (
-                                <div className="p-5 text-center"><p className="text-muted">No pending approvals at the moment.</p></div>
-                            ) : (
-                                <Table hover responsive className="mb-0 align-middle">
-                                    <thead style={styles.tableHeader}>
-                                        <tr>
-                                            <th className="ps-4">Seller</th>
-                                            <th>Type</th>
-                                            <th>Location</th>
-                                            <th>Price</th>
-                                            <th className="text-end pe-4">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {pendingProperties.map((p) => (
-                                            <tr key={p.id}>
-                                                <td className="ps-4">
-                                                    <div className="fw-bold">{p.seller.name}</div>
-                                                    <small className="text-muted">{p.seller.email}</small>
-                                                </td>
-                                                <td><Badge pill bg="light" className="text-dark border">{p.type}</Badge></td>
-                                                <td>
-                                                    <div className="text-truncate" style={{ maxWidth: '200px' }}>{p.address}</div>
-                                                    <small className="text-primary cursor-pointer" style={{ cursor: 'pointer' }} onClick={() => handleViewProperty(p)}>View Details</small>
-                                                </td>
-                                                <td className="fw-bold text-dark">₹{p.price.toLocaleString()}</td>
-                                                <td className="text-end pe-4">
-                                                    <div className="d-flex gap-2 justify-content-end">
-                                                        <Button variant="success" size="sm" className="rounded-pill px-3" onClick={() => handlePropertyAction(p.id, 'APPROVED')}>
-                                                            <Check size={14} className="me-1" /> Approve
-                                                        </Button>
-                                                        <Button variant="outline-danger" size="sm" className="rounded-pill" onClick={() => handlePropertyAction(p.id, 'REJECTED')}>
-                                                            <X size={14} />
-                                                        </Button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </Table>
-                            )}
-                        </Card.Body>
-                    </Card>
-                </Tab>
-
-                <Tab eventKey="users" title="User Management">
-                    <Card style={styles.card} className="overflow-hidden">
-                        <Card.Body className="p-0">
-                            <Table hover responsive className="mb-0 align-middle">
-                                <thead style={styles.tableHeader}>
-                                    <tr>
-                                        <th className="ps-4">User Details</th>
-                                        <th>Role</th>
-                                        <th className="text-end pe-4">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {users.map((u) => (
-                                        <tr key={u.id}>
-                                            <td className="ps-4">
-                                                <div className="d-flex align-items-center">
-                                                    <div className="bg-light rounded-circle p-2 me-3 text-secondary"><Users size={16} /></div>
-                                                    <div>
-                                                        <div className="fw-bold">{u.name}</div>
-                                                        <div className="text-muted small">{u.email}</div>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <Badge bg={u.role === 'ADMIN' ? 'dark' : u.role === 'SELLER' ? 'warning' : 'info'} pill className="px-3">
-                                                    {u.role}
-                                                </Badge>
-                                            </td>
-                                            <td className="text-end pe-4">
-                                                {u.role !== 'ADMIN' && (
-                                                    <Button variant="link" className="text-danger p-0" onClick={() => handleDeleteUser(u.id)}>
-                                                        <Trash2 size={18} />
-                                                    </Button>
-                                                )}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </Table>
-                        </Card.Body>
-                    </Card>
-                </Tab>
-
-                <Tab eventKey="transactions" title="Transactions">
-                    <Card style={styles.card} className="overflow-hidden">
-                        <Card.Body className="p-0">
-                            <Table hover responsive className="mb-0 align-middle">
-                                <thead style={styles.tableHeader}>
-                                    <tr>
-                                        <th className="ps-4">Transaction ID</th>
-                                        <th>Parties</th>
-                                        <th>Revenue (5%)</th>
-                                        <th className="text-end pe-4">Date</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {transactions.map((t) => (
-                                        <tr key={t.id}>
-                                            <td className="ps-4">
-                                                <code className="text-muted small">{t.transactionId}</code>
-                                                <div className="small fw-bold">{t.property.title}</div>
-                                            </td>
-                                            <td>
-                                                <div className="small text-muted">B: {t.buyer.name}</div>
-                                                <div className="small text-muted">S: {t.seller.name}</div>
-                                            </td>
-                                            <td><span className="text-success fw-bold">₹{t.amount.toLocaleString()}</span></td>
-                                            <td className="text-end pe-4 text-muted small">{new Date(t.paymentDate).toLocaleDateString()}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </Table>
-                        </Card.Body>
-                    </Card>
-                </Tab>
-            </Tabs>
-
-            {/* Modals with enhanced styling */}
-            <Modal show={showPropertyModal} onHide={() => setShowPropertyModal(false)} size="lg" centered contentClassName="border-0 shadow-lg" style={{ borderRadius: '20px' }}>
-                <Modal.Body className="p-0">
-                    {selectedProperty && (
-                        <div>
-                            <div className="position-relative" style={{ height: '300px' }}>
-                                <img
-                                    src={selectedProperty.images ? selectedProperty.images.split(',')[0] : 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&q=80&w=1000'}
-                                    alt="Property"
-                                    className="w-100 h-100 object-fit-cover"
-                                />
-                                <Button
-                                    variant="light"
-                                    className="position-absolute top-0 end-0 m-3 rounded-circle shadow-sm"
-                                    onClick={() => setShowPropertyModal(false)}
-                                >
-                                    <X size={20} />
-                                </Button>
-                            </div>
-                            <div className="p-4">
-                                <div className="d-flex justify-content-between align-items-start mb-3">
-                                    <div>
-                                        <h3 className="fw-bold mb-1">{selectedProperty.title}</h3>
-                                        <p className="text-muted mb-0"><Home size={16} className="me-1" /> {selectedProperty.address}, {selectedProperty.city}</p>
+                                <div style={{ padding: '1.5rem' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                                        <div>
+                                            <h2 style={{ color: '#fff', fontWeight: 900, letterSpacing: '-0.03em', margin: 0 }}>{selectedProperty.title}</h2>
+                                            <p style={{ color: '#555', fontSize: '0.875rem', marginTop: 4 }}>{selectedProperty.address}, {selectedProperty.city}</p>
+                                        </div>
+                                        <span style={{ color: '#fff', fontSize: '1.25rem', fontWeight: 900 }}>₹{selectedProperty.price?.toLocaleString()}</span>
                                     </div>
-                                    <h3 className="text-primary fw-bold">₹{selectedProperty.price.toLocaleString()}</h3>
-                                </div>
 
-                                <Row className="g-3 mb-4 text-center">
-                                    <Col xs={3}><div className="bg-light p-2 rounded"><strong>{selectedProperty.area}</strong><br /><small className="text-muted">Sq.ft</small></div></Col>
-                                    <Col xs={3}><div className="bg-light p-2 rounded"><strong>{selectedProperty.beds || 0}</strong><br /><small className="text-muted">Beds</small></div></Col>
-                                    <Col xs={3}><div className="bg-light p-2 rounded"><strong>{selectedProperty.baths || 0}</strong><br /><small className="text-muted">Baths</small></div></Col>
-                                    <Col xs={3}><div className="bg-light p-2 rounded"><strong>{selectedProperty.type}</strong><br /><small className="text-muted">Type</small></div></Col>
-                                </Row>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem', marginBottom: '1.5rem' }}>
+                                        {[['Area', `${selectedProperty.area} sqft`], ['Beds', selectedProperty.beds || '—'], ['Baths', selectedProperty.baths || '—'], ['Type', selectedProperty.type]].map(([k, v]) => (
+                                            <div key={k} style={{ background: '#111', border: '1px solid #1a1a1a', borderRadius: 8, padding: '0.75rem', textAlign: 'center' }}>
+                                                <div style={{ color: '#fff', fontWeight: 700, fontSize: '0.9rem' }}>{v}</div>
+                                                <div style={{ color: '#555', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 2 }}>{k}</div>
+                                            </div>
+                                        ))}
+                                    </div>
 
-                                <div className="mb-4">
-                                    <PropertyMap location={`${selectedProperty.address}, ${selectedProperty.city}`} />
-                                </div>
+                                    <div style={{ borderRadius: 10, overflow: 'hidden', marginBottom: '1.5rem' }}>
+                                        <PropertyMap location={`${selectedProperty.address}, ${selectedProperty.city}`} />
+                                    </div>
 
-                                <div className="d-flex gap-3 justify-content-end pt-3 border-top">
-                                    <Button variant="danger" className="px-4 py-2" onClick={() => { setShowPropertyModal(false); handlePropertyAction(selectedProperty?.id, 'REJECTED'); }}>Reject Listing</Button>
-                                    <Button variant="success" className="px-4 py-2" onClick={() => { setShowPropertyModal(false); handlePropertyAction(selectedProperty?.id, 'APPROVED'); }}>Approve Listing</Button>
+                                    <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+                                        <button
+                                            onClick={() => { setShowPropertyModal(false); handleReject(selectedProperty); }}
+                                            style={{ background: 'transparent', border: '1px solid #2a2a2a', color: '#888', borderRadius: 8, padding: '0.65rem 1.5rem', fontFamily: 'var(--font-sans)', fontWeight: 600, cursor: 'pointer' }}
+                                        >
+                                            Reject
+                                        </button>
+                                        <button
+                                            onClick={() => { setShowPropertyModal(false); handleApprove(selectedProperty.id); }}
+                                            style={{ background: '#fff', color: '#000', border: 'none', borderRadius: 8, padding: '0.65rem 1.5rem', fontFamily: 'var(--font-sans)', fontWeight: 700, cursor: 'pointer' }}
+                                        >
+                                            Approve Listing
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    )}
-                </Modal.Body>
-            </Modal>
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
 
-            {/* Rejection Modal */}
-            <Modal show={showRejectModal} onHide={() => setShowRejectModal(false)} centered>
-                <Modal.Header closeButton className="border-0">
-                    <Modal.Title className="fw-bold">Specify Rejection Reason</Modal.Title>
-                </Modal.Header>
-                <Modal.Body>
-                    <Form.Control
-                        as="textarea"
-                        rows={4}
-                        className="bg-light border-0"
-                        value={rejectionReason}
-                        onChange={(e) => setRejectionReason(e.target.value)}
-                        placeholder="Why is this listing being rejected?"
-                    />
-                </Modal.Body>
-                <Modal.Footer className="border-0">
-                    <Button variant="light" onClick={() => setShowRejectModal(false)}>Cancel</Button>
-                    <Button variant="danger" onClick={submitRejection} disabled={!rejectionReason}>Reject Permanently</Button>
-                </Modal.Footer>
-            </Modal>
-        </Container>
+            {/* ── Rejection Reason Modal ──────────────────────── */}
+            <AnimatePresence>
+                {showRejectModal && (
+                    <>
+                        <motion.div
+                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            onClick={() => setShowRejectModal(false)}
+                            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 1400 }}
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, x: '-50%', y: '-50%' }}
+                            animate={{ opacity: 1, scale: 1, x: '-50%', y: '-50%' }}
+                            exit={{ opacity: 0, scale: 0.95, x: '-50%', y: '-50%' }}
+                            transition={{ duration: 0.25, ease: EASE }}
+                            style={{
+                                position: 'fixed', top: '50%', left: '50%',
+                                background: '#0a0a0a', border: '1px solid #1a1a1a',
+                                borderRadius: 14, width: '90%', maxWidth: 460, zIndex: 1500, padding: '1.75rem',
+                            }}
+                        >
+                            <h3 style={{ color: '#fff', fontWeight: 700, letterSpacing: '-0.02em', marginBottom: '0.5rem' }}>Rejection Reason</h3>
+                            <p style={{ color: '#555', fontSize: '0.875rem', marginBottom: '1.25rem' }}>Explain why this listing is being rejected.</p>
+                            <textarea
+                                value={rejectionReason}
+                                onChange={(e) => setRejectionReason(e.target.value)}
+                                placeholder="e.g. Missing images, incorrect pricing..."
+                                rows={4}
+                                style={{ width: '100%', background: '#111', border: '1px solid #2a2a2a', borderRadius: 8, padding: '0.75rem', color: '#fff', fontFamily: 'var(--font-sans)', fontSize: '0.875rem', outline: 'none', resize: 'vertical' }}
+                            />
+                            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem', justifyContent: 'flex-end' }}>
+                                <button
+                                    onClick={() => setShowRejectModal(false)}
+                                    style={{ background: 'transparent', border: '1px solid #2a2a2a', color: '#666', borderRadius: 8, padding: '0.6rem 1.25rem', fontFamily: 'var(--font-sans)', cursor: 'pointer' }}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={submitRejection}
+                                    disabled={!rejectionReason}
+                                    style={{ background: rejectionReason ? '#fff' : '#222', color: rejectionReason ? '#000' : '#555', border: 'none', borderRadius: 8, padding: '0.6rem 1.5rem', fontFamily: 'var(--font-sans)', fontWeight: 700, cursor: rejectionReason ? 'pointer' : 'not-allowed' }}
+                                >
+                                    Reject Listing
+                                </button>
+                            </div>
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
+        </div>
     );
 };
 

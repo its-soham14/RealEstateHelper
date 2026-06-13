@@ -83,4 +83,17 @@ public class EmailService {
                 "RealEstateHelper Team";
         sendSimpleMessage(to, subject, text);
     }
+
+    @Async
+    public void sendPasswordResetOtpEmail(String to, String name, String otp) {
+        String subject = "Password Reset Request - RealEstateHelper";
+        String text = "Dear " + name + ",\n\n" +
+                "We received a request to reset your password.\n" +
+                "Please use the following OTP to reset your password:\n\n" +
+                "OTP: " + otp + "\n\n" +
+                "This OTP is valid for 10 minutes. If you did not request this, please ignore this email.\n\n" +
+                "Best Regards,\n" +
+                "RealEstateHelper Team";
+        sendSimpleMessage(to, subject, text);
+    }
 }

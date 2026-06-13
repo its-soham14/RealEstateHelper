@@ -10,5 +10,4 @@ public class RealEstateApplication {
 
         SpringApplication.run(RealEstateApplication.class, args);
 	}
-
 }

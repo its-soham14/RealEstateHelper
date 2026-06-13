@@ -1,25 +1,96 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Form, Button, Card, Badge, Tabs, Tab, InputGroup } from 'react-bootstrap';
 import axios from 'axios';
-import PropertyCard from '../components/PropertyCard';
-import PriceRangeSlider from '../components/PriceRangeSlider';
-import { Filter, Search, MapPin, Home, Heart, Calendar, RotateCcw } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Filter, Search, Home, Heart, Calendar, RotateCcw, MapPin, Bed, Bath, ArrowUpRight, X } from 'lucide-react';
 import { useSearch } from '../context/SearchContext';
+import PriceRangeSlider from '../components/PriceRangeSlider';
+import PropertyCard from '../components/PropertyCard';
+import { Link } from 'react-router-dom';
 import API_BASE_URL from '../config/api';
 
+const EASE = [0.16, 1, 0.3, 1];
+
+const staggerContainer = {
+    hidden: {},
+    visible: { transition: { staggerChildren: 0.08, delayChildren: 0.05 } }
+};
+const staggerItem = {
+    hidden: { opacity: 0, y: 24 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: EASE } }
+};
+
+// ── Dark tab button ───────────────────────────────────────────
+function TabBtn({ active, onClick, icon: Icon, label, count }) {
+    return (
+        <button
+            onClick={onClick}
+            style={{
+                display: 'flex', alignItems: 'center', gap: '0.5rem',
+                padding: '0.6rem 1.25rem',
+                background: active ? '#fff' : 'transparent',
+                color: active ? '#000' : '#555',
+                border: '1px solid',
+                borderColor: active ? '#fff' : '#222',
+                borderRadius: 100,
+                fontFamily: 'var(--font-sans)',
+                fontWeight: 600,
+                fontSize: '0.875rem',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                whiteSpace: 'nowrap',
+            }}
+        >
+            <Icon size={15} />
+            {label}
+            {count !== undefined && (
+                <span style={{
+                    background: active ? '#000' : '#222',
+                    color: active ? '#fff' : '#888',
+                    borderRadius: 100,
+                    fontSize: '0.7rem',
+                    padding: '1px 7px',
+                    fontWeight: 700,
+                }}>
+                    {count}
+                </span>
+            )}
+        </button>
+    );
+}
+
+// ── Black filter input ────────────────────────────────────────
+function FilterInput({ label, children }) {
+    return (
+        <div style={{ marginBottom: '1.5rem' }}>
+            <label style={{
+                display: 'block', color: '#aaa',
+                fontSize: '0.72rem', letterSpacing: '0.12em',
+                textTransform: 'uppercase', marginBottom: '0.5rem',
+                fontWeight: 600
+            }}>
+                {label}
+            </label>
+            {children}
+        </div>
+    );
+}
+
+const selectStyle = {
+    width: '100%', background: '#0d0d0d', border: '1px solid #333',
+    borderRadius: 8, padding: '0.65rem 0.875rem', color: '#e0e0e0',
+    fontFamily: 'var(--font-sans)', fontSize: '0.875rem', outline: 'none',
+    appearance: 'none', cursor: 'pointer',
+};
+
 const BuyerDashboard = ({ user }) => {
+    const [activeTab, setActiveTab] = useState('properties');
     const [properties, setProperties] = useState([]);
     const [wishlist, setWishlist] = useState([]);
     const [bookings, setBookings] = useState([]);
+    const [sidebarOpen, setSidebarOpen] = useState(false);
     const { searchQuery, setSearchQuery } = useSearch();
-    const [filters, setFilters] = useState({
-        minPrice: '',
-        maxPrice: '',
-        type: '',
-        beds: ''
-    });
+    const [filters, setFilters] = useState({ minPrice: '', maxPrice: '', type: '', beds: '' });
 
-    // ... (logic for fetchProperties, fetchWishlist, fetchBookings remains the same)
     const fetchProperties = async () => {
         try {
             const params = {};
@@ -29,20 +100,15 @@ const BuyerDashboard = ({ user }) => {
             if (filters.type) params.type = filters.type;
             if (filters.beds) params.beds = filters.beds;
             const res = await axios.get(`${API_BASE_URL}/api/properties`, { params });
-            setProperties(res.data);
-        } catch (e) {
-            console.error(e);
-            setProperties([]);
-        }
+            setProperties(res.data.content ? res.data.content : res.data);
+        } catch (e) { setProperties([]); }
     };
 
     const fetchWishlist = async () => {
         try {
             const token = localStorage.getItem('token');
             if (!token) return;
-            const res = await axios.get(`${API_BASE_URL}/api/likes/wishlist`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const res = await axios.get(`${API_BASE_URL}/api/likes/wishlist`, { headers: { Authorization: `Bearer ${token}` } });
             setWishlist(res.data);
         } catch (e) { console.error(e); }
     };
@@ -50,9 +116,7 @@ const BuyerDashboard = ({ user }) => {
     const fetchBookings = async () => {
         try {
             const token = localStorage.getItem('token');
-            const res = await axios.get(`${API_BASE_URL}/api/transactions/buyer`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const res = await axios.get(`${API_BASE_URL}/api/transactions/buyer`, { headers: { Authorization: `Bearer ${token}` } });
             setBookings(res.data);
         } catch (e) { console.error(e); }
     };
@@ -63,196 +127,249 @@ const BuyerDashboard = ({ user }) => {
         fetchBookings();
     }, [filters, searchQuery]);
 
-    const handleFilterChange = (e) => {
-        setFilters({ ...filters, [e.target.name]: e.target.value });
-    };
+    const handleFilterChange = (e) => setFilters({ ...filters, [e.target.name]: e.target.value });
+    const resetFilters = () => { setFilters({ minPrice: '', maxPrice: '', type: '', beds: '' }); setSearchQuery(''); };
+
+    // ── Sidebar ──────────────────────────────────────────────
+    const Sidebar = () => (
+        <div style={{
+            background: '#000', borderRight: '1px solid #1a1a1a',
+            padding: '2rem',
+            height: '100%',
+        }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '2rem' }}>
+                <Filter size={16} color="#fff" />
+                <span style={{ color: '#fff', fontWeight: 700, fontSize: '0.875rem', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                    Filters
+                </span>
+            </div>
+
+            {/* Search */}
+            <FilterInput label="City / Area">
+                <div style={{ display: 'flex', alignItems: 'center', background: '#0a0a0a', border: '1px solid #ffffff', borderRadius: 8, padding: '0 0.75rem', gap: '0.5rem' }}>
+                    <Search size={14} color="#555" />
+                    <input
+                        type="text" placeholder="e.g. Mumbai"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        style={{ ...selectStyle, border: 'none', padding: '0.65rem 0', background: 'transparent' }}
+                    />
+                </div>
+            </FilterInput>
+
+            <FilterInput label="Property Type">
+                <select name="type" value={filters.type} onChange={handleFilterChange} style={selectStyle}>
+                    <option value="">All Types</option>
+                    <option value="HOUSE">House</option>
+                    <option value="LAND">Land</option>
+                    <option value="FARM">Farm</option>
+                    <option value="FARMLAND">Farmland</option>
+                    <option value="APARTMENT">Apartment</option>
+                    <option value="VILLA">Villa</option>
+                    <option value="COMMERCIAL">Commercial</option>
+                    <option value="RESIDENTIAL_PLOT">Residential Plot</option>
+                    <option value="PG_HOSTEL">PG / Hostel</option>
+                    <option value="OTHER">Other</option>
+                </select>
+            </FilterInput>
+
+            <FilterInput label="Price Range (₹)">
+                <div style={{ padding: '0.25rem 0' }}>
+                    <PriceRangeSlider
+                        min={0} max={50000000}
+                        onChange={(min, max) => setFilters(prev => ({ ...prev, minPrice: min.toString(), maxPrice: max.toString() }))}
+                    />
+                </div>
+            </FilterInput>
+
+            {filters.type === 'HOUSE' && (
+                <FilterInput label="Min Bedrooms">
+                    <input type="number" name="beds" placeholder="e.g. 2" onChange={handleFilterChange} style={selectStyle} />
+                </FilterInput>
+            )}
+
+            <button
+                onClick={resetFilters}
+                style={{
+                    width: '100%', background: 'transparent', border: '1px solid #2a2a2a',
+                    borderRadius: 8, padding: '0.65rem', color: '#555',
+                    fontFamily: 'var(--font-sans)', fontSize: '0.8rem', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+                    transition: 'all 0.2s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = '#fff'; e.currentTarget.style.color = '#fff'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = '#2a2a2a'; e.currentTarget.style.color = '#555'; }}
+            >
+                <RotateCcw size={14} /> Reset Filters
+            </button>
+        </div>
+    );
+
+    // ── Empty state ───────────────────────────────────────────
+    const EmptyState = ({ msg }) => (
+        <div style={{ padding: '5rem 0', textAlign: 'center' }}>
+            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>◻</div>
+            <p style={{ color: '#555', fontSize: '0.9375rem' }}>{msg}</p>
+        </div>
+    );
 
     return (
-        <Container fluid className="px-lg-5 py-4 bg-light" style={{ minHeight: '100vh' }}>
-            <Row className="g-4">
-                {/* --- Sidebar Filters --- */}
-                <Col lg={4} className="d-none d-lg-block">
-                    <div className="sticky-top" style={{ top: '2rem' }}>
-                        <Card className="border-0 shadow-sm rounded-4 overflow-hidden">
-                            <Card.Body className="p-4">
-                                <div className="d-flex align-items-center gap-2 mb-4 text-primary">
-                                    <Filter size={22} />
-                                    <h5 className="mb-0 fw-bold text-dark">Refine Search</h5>
-                                </div>
+        <div style={{ background: '#000', minHeight: '100vh', paddingTop: 'var(--navbar-height)', display: 'flex', flexDirection: 'column' }}>
 
-                                <Form>
-                                    <Form.Group className="mb-4">
-                                        <Form.Label className="small fw-bold text-uppercase text-muted mb-2">Property Type</Form.Label>
-                                        <Form.Select
-                                            name="type"
-                                            onChange={handleFilterChange}
-                                            value={filters.type}
-                                            className="form-control-lg border-light bg-light rounded-3 fs-6"
-                                        >
-                                            <option value="">All Types</option>
-                                            <option value="APARTMENT">Apartment</option>
-                                            <option value="HOUSE">House</option>
-                                            <option value="VILLA">Villa</option>
-                                            <option value="LAND">Land</option>
-                                        </Form.Select>
-                                    </Form.Group>
+            {/* ── Header ─────────────────────────────────────── */}
+            <motion.div
+                initial={{ opacity: 0, y: -16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, ease: EASE }}
+                style={{ borderBottom: '1px solid #1a1a1a', padding: '2rem 2.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}
+            >
+                <div>
+                    <p style={{ color: '#555', fontSize: '0.8rem', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '4px' }}>
+                        Buyer Dashboard
+                    </p>
+                    <h1 style={{ color: '#fff', fontSize: 'clamp(1.5rem, 3vw, 2rem)', fontWeight: 900, letterSpacing: '-0.03em', lineHeight: 1.1 }}>
+                        Good day, {user?.name?.split(' ')[0]}
+                    </h1>
+                </div>
 
+                {/* Tab Pills */}
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <TabBtn active={activeTab === 'properties'} onClick={() => setActiveTab('properties')} icon={Home} label="Properties" count={properties.length} />
+                    <TabBtn active={activeTab === 'wishlist'}   onClick={() => setActiveTab('wishlist')}   icon={Heart} label="Saved" count={wishlist.length} />
+                    <TabBtn active={activeTab === 'bookings'}   onClick={() => setActiveTab('bookings')}   icon={Calendar} label="Bookings" count={bookings.length} />
+                </div>
+            </motion.div>
 
+            {/* ── Body ───────────────────────────────────────── */}
+            <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
 
-                                    <Form.Group className="mb-4">
-                                        <Form.Label className="small fw-bold text-uppercase text-muted mb-3">Price Range (₹)</Form.Label>
-                                        <div className="px-2">
-                                            <PriceRangeSlider
-                                                min={0}
-                                                max={50000000}
-                                                onChange={(min, max) => {
-                                                    setFilters(prev => ({ ...prev, minPrice: min.toString(), maxPrice: max.toString() }));
-                                                }}
-                                            />
-                                        </div>
-                                    </Form.Group>
+                {/* Sidebar — desktop */}
+                <aside className="d-none d-lg-block" style={{ width: 260, flexShrink: 0, borderRight: '1px solid #1a1a1a', overflowY: 'auto' }}>
+                    {Sidebar()}
+                </aside>
 
-                                    {filters.type === 'HOUSE' && (
-                                        <Form.Group className="mb-4">
-                                            <Form.Label className="small fw-bold text-uppercase text-muted mb-2">Min Bedrooms</Form.Label>
-                                            <Form.Control
-                                                type="number"
-                                                name="beds"
-                                                placeholder="e.g. 2"
-                                                onChange={handleFilterChange}
-                                                className="form-control-lg border-light bg-light"
-                                            />
-                                        </Form.Group>
-                                    )}
+                {/* Main */}
+                <main style={{ flex: 1, overflowY: 'auto', padding: '2rem 2.5rem' }}>
 
-                                    <Button
-                                        variant="outline-secondary"
-                                        className="w-100 border-0 bg-light-subtle fw-semibold py-2 d-flex align-items-center justify-content-center gap-2 hover-shadow"
-                                        onClick={() => {
-                                            setFilters({ minPrice: '', maxPrice: '', type: '', beds: '' });
-                                            setSearchQuery('');
-                                        }}
-                                    >
-                                        <RotateCcw size={16} /> Reset All
-                                    </Button>
-                                </Form>
-                            </Card.Body>
-                        </Card>
-                    </div>
-                </Col>
-
-                {/* --- Main Content --- */}
-                <Col lg={8}>
-                    {/* Header Section */}
-                    <div className="mb-5">
-                        <h2 className="display-6 fw-bold text-dark mb-2">Welcome back, {user.name}!</h2>
-                        <p className="text-muted lead">Find your next home in a few clicks.</p>
-
-                    </div>
-
-                    <Tabs
-                        defaultActiveKey="search"
-                        id="dashboard-tabs"
-                        className="mb-4 custom-tabs border-0"
-                        onSelect={() => { fetchProperties(); fetchWishlist(); }}
+                    {/* Mobile filter btn */}
+                    <button
+                        className="d-lg-none"
+                        onClick={() => setSidebarOpen(true)}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#111', border: '1px solid #2a2a2a', color: '#fff', borderRadius: 8, padding: '0.5rem 1rem', fontFamily: 'var(--font-sans)', fontSize: '0.85rem', cursor: 'pointer', marginBottom: '1.5rem' }}
                     >
-                        <Tab eventKey="search" title={<span><Home size={18} className="me-2" /> Properties</span>}>
-                            <Row className="g-4" style={{ minHeight: '600px' }}>
-                                {properties.map((property) => (
-                                    <Col md={6} key={property.id}>
-                                        <div className="h-100 transform-hover">
-                                            <PropertyCard property={property} user={user} />
-                                        </div>
-                                    </Col>
-                                ))}
-                                {properties.length === 0 && (
-                                    <div className="text-center py-5">
-                                        <img src="https://illustrations.popsy.co/gray/home-office.svg" alt="empty" style={{ width: '200px' }} className="mb-3 opacity-50" />
-                                        <h4 className="text-muted">No properties found.</h4>
-                                        <p>Try adjusting your filters or location.</p>
-                                    </div>
-                                )}
-                            </Row>
-                        </Tab>
+                        <Filter size={15} /> Filters
+                    </button>
 
-                        <Tab eventKey="wishlist" title={<span><Heart size={18} className="me-2" /> Wishlist</span>}>
-                            <Row className="g-4">
-                                {wishlist.map((property) => (
-                                    <Col md={6} key={property.id}>
-                                        <PropertyCard property={property} user={user} />
-                                    </Col>
-                                ))}
-                                {wishlist.length === 0 && (
-                                    <div className="text-center py-5">
-                                        <p className="text-muted lead">You haven't saved any properties yet.</p>
-                                    </div>
-                                )}
-                            </Row>
-                        </Tab>
+                    <AnimatePresence mode="wait">
 
-                        <Tab eventKey="bookings" title={<span><Calendar size={18} className="me-2" /> My Bookings</span>}>
-                            <Row className="g-3">
-                                {bookings.length === 0 ? (
-                                    <div className="text-center py-5 w-100">
-                                        <p className="text-muted">No transactions found.</p>
-                                    </div>
-                                ) : bookings.map((b) => (
-                                    <Col xs={12} key={b.id}>
-                                        <Card className="border-0 shadow-sm rounded-4 overflow-hidden">
-                                            <Card.Body className="p-4 d-md-flex justify-content-between align-items-center">
-                                                <div className="d-flex align-items-center gap-4">
-                                                    <div className="bg-primary-subtle p-3 rounded-4 d-none d-md-block">
-                                                        <Home className="text-primary" />
+                        {/* Properties Tab */}
+                        {activeTab === 'properties' && (
+                            <motion.div key="props" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}>
+                                {properties.length === 0 ? <EmptyState msg="No properties found. Try adjusting your filters." /> : (
+                                    <motion.div
+                                        variants={staggerContainer} initial="hidden" animate="visible"
+                                        style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.25rem' }}
+                                    >
+                                        {properties.map((p) => (
+                                            <motion.div key={p.id} variants={staggerItem}>
+                                                <PropertyCard property={p} user={user} onLikeToggle={fetchWishlist} />
+                                            </motion.div>
+                                        ))}
+                                    </motion.div>
+                                )}
+                            </motion.div>
+                        )}
+
+                        {/* Wishlist Tab */}
+                        {activeTab === 'wishlist' && (
+                            <motion.div key="wish" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}>
+                                {wishlist.length === 0 ? <EmptyState msg="No saved properties yet. Start exploring!" /> : (
+                                    <motion.div
+                                        variants={staggerContainer} initial="hidden" animate="visible"
+                                        style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.25rem' }}
+                                    >
+                                        {wishlist.map((p) => (
+                                            <motion.div key={p.id} variants={staggerItem}>
+                                                <PropertyCard property={p} user={user} onLikeToggle={fetchWishlist} />
+                                            </motion.div>
+                                        ))}
+                                    </motion.div>
+                                )}
+                            </motion.div>
+                        )}
+
+                        {/* Bookings Tab */}
+                        {activeTab === 'bookings' && (
+                            <motion.div key="book" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}>
+                                {bookings.length === 0 ? <EmptyState msg="No bookings yet." /> : (
+                                    <motion.div
+                                        variants={staggerContainer} initial="hidden" animate="visible"
+                                        style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
+                                    >
+                                        {bookings.map((b) => (
+                                            <motion.div key={b.id} variants={staggerItem}>
+                                                <div style={{
+                                                    background: '#111', border: '1px solid #222',
+                                                    borderRadius: 12, padding: '1.5rem',
+                                                    display: 'flex', justifyContent: 'space-between',
+                                                    alignItems: 'center', flexWrap: 'wrap', gap: '1rem',
+                                                }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                                        <div style={{ width: 48, height: 48, background: '#1a1a1a', border: '1px solid #2a2a2a', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                            <Home size={20} color="#fff" />
+                                                        </div>
+                                                        <div>
+                                                            <div style={{ color: '#fff', fontWeight: 700, fontSize: '0.9375rem' }}>{b.property?.title || 'Property'}</div>
+                                                            <div style={{ color: '#555', fontSize: '0.8rem', marginTop: 2 }}>
+                                                                {new Date(b.paymentDate).toLocaleDateString('en-IN', { dateStyle: 'long' })}
+                                                            </div>
+                                                        </div>
                                                     </div>
-                                                    <div>
-                                                        <h5 className="fw-bold mb-1 text-dark">{b.property.title}</h5>
-                                                        <div className="d-flex gap-3 small text-muted">
-
-                                                            <span>{new Date(b.paymentDate).toLocaleDateString(undefined, { dateStyle: 'long' })}</span>
+                                                    <div style={{ textAlign: 'right' }}>
+                                                        <div style={{ color: '#fff', fontWeight: 900, fontSize: '1.25rem', letterSpacing: '-0.02em' }}>
+                                                            ₹ {b.amount?.toLocaleString()}
+                                                        </div>
+                                                        <div style={{ background: '#1a1a1a', border: '1px solid #2a2a2a', color: '#fff', fontSize: '0.7rem', letterSpacing: '0.1em', textTransform: 'uppercase', padding: '2px 10px', borderRadius: 100, marginTop: 6, display: 'inline-block' }}>
+                                                            Confirmed · 5% Token
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div className="text-md-end mt-3 mt-md-0 pt-3 pt-md-0 border-top border-md-0">
-                                                    <h3 className="text-primary fw-bold mb-1">₹ {b.amount.toLocaleString()}</h3>
-                                                    <Badge pill bg="success-subtle" className="text-success border border-success px-3 py-2">
-                                                        Payment Confirmed (5%)
-                                                    </Badge>
-                                                </div>
-                                            </Card.Body>
-                                        </Card>
-                                    </Col>
-                                ))}
-                            </Row>
-                        </Tab>
-                    </Tabs>
-                </Col>
-            </Row>
+                                            </motion.div>
+                                        ))}
+                                    </motion.div>
+                                )}
+                            </motion.div>
+                        )}
 
-            {/* Custom Styles for Tabs and Hover */}
-            <style>{`
-                .custom-tabs .nav-link {
-                    color: #6c757d;
-                    border: none;
-                    padding: 0.8rem 1.5rem;
-                    border-radius: 12px;
-                    font-weight: 600;
-                    transition: all 0.3s ease;
-                }
-                .custom-tabs .nav-link.active {
-                    background-color: #0d6efd !important;
-                    color: white !important;
-                    box-shadow: 0 4px 15px rgba(13, 110, 253, 0.3);
-                }
-                .transform-hover {
-                    transition: transform 0.3s ease;
-                }
-                .transform-hover:hover {
-                    transform: translateY(-8px);
-                }
-                .bg-primary-subtle { background-color: rgba(13, 110, 253, 0.1); }
-                .bg-success-subtle { background-color: rgba(25, 135, 84, 0.1); }
-            `}</style>
-        </Container>
+                    </AnimatePresence>
+                </main>
+            </div>
+
+            {/* Mobile sidebar overlay */}
+            <AnimatePresence>
+                {sidebarOpen && (
+                    <>
+                        <motion.div
+                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            onClick={() => setSidebarOpen(false)}
+                            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 1100 }}
+                        />
+                        <motion.div
+                            initial={{ x: '-100%' }} animate={{ x: 0 }} exit={{ x: '-100%' }}
+                            transition={{ duration: 0.35, ease: EASE }}
+                            style={{ position: 'fixed', top: 0, left: 0, bottom: 0, width: 280, zIndex: 1200, overflowY: 'auto' }}
+                        >
+                            <div style={{ position: 'absolute', top: '1rem', right: '1rem', zIndex: 1 }}>
+                                <button onClick={() => setSidebarOpen(false)} style={{ background: '#111', border: '1px solid #2a2a2a', borderRadius: '50%', width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', cursor: 'pointer' }}>
+                                    <X size={16} />
+                                </button>
+                            </div>
+                            {Sidebar()}
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
+        </div>
     );
 };
 

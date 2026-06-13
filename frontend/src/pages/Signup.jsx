@@ -1,300 +1,348 @@
-import React, { useState } from 'react';
-import { Container, Form, Button, Card, Alert, Row, Col } from 'react-bootstrap';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { motion } from 'framer-motion';
-import { User, Mail, Lock, Phone, Building2, MapPin, Eye, EyeOff } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { User, Mail, Lock, Phone, Building2, MapPin, Eye, EyeOff, ArrowRight, ArrowLeft, CheckCircle, RefreshCw } from 'lucide-react';
 import API_BASE_URL from '../config/api';
+
+const EASE = [0.16, 1, 0.3, 1];
+
+function AuthInput({ icon: Icon, type, placeholder, value, onChange, name, required, rightEl, as }) {
+    const sharedStyle = {
+        flex: 1, background: 'transparent', border: 'none', outline: 'none',
+        color: '#fff', fontFamily: 'var(--font-sans)', fontSize: '0.9375rem',
+        padding: '0.875rem 0', width: '100%', resize: 'vertical',
+    };
+    return (
+        <div
+            style={{
+                display: 'flex', alignItems: as === 'textarea' ? 'flex-start' : 'center',
+                background: '#111', border: '1px solid #2a2a2a', borderRadius: 10,
+                padding: as === 'textarea' ? '0.875rem 1rem' : '0 1rem',
+                gap: '0.75rem', transition: 'border-color 0.2s',
+            }}
+            onFocus={e => e.currentTarget.style.borderColor = '#fff'}
+            onBlur={e => e.currentTarget.style.borderColor = '#2a2a2a'}
+        >
+            {Icon && <Icon size={16} color="#555" style={{ marginTop: as === 'textarea' ? '2px' : 0 }} />}
+            {as === 'textarea' ? (
+                <textarea name={name} placeholder={placeholder} value={value} onChange={onChange} required={required} rows={2} style={sharedStyle} />
+            ) : (
+                <input type={type || 'text'} name={name} placeholder={placeholder} value={value} onChange={onChange} required={required} style={sharedStyle} />
+            )}
+            {rightEl}
+        </div>
+    );
+}
 
 const Signup = () => {
     const [formData, setFormData] = useState({
-        name: '',
-        email: '',
-        password: '',
-        role: 'BUYER',
-        phone: '',
-        companyName: '',
-        address: ''
+        name: '', email: '', password: '', role: 'BUYER', phone: '', companyName: '', address: ''
     });
     const [showPassword, setShowPassword] = useState(false);
-    const [step, setStep] = useState(1); // 1: Signup, 2: OTP
+    const [step, setStep] = useState(1);
     const [otp, setOtp] = useState('');
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [resendCooldown, setResendCooldown] = useState(0);
     const navigate = useNavigate();
 
-    const handleChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
-    };
+    // Countdown timer
+    useEffect(() => {
+        if (resendCooldown <= 0) return;
+        const id = setInterval(() => setResendCooldown(c => c - 1), 1000);
+        return () => clearInterval(id);
+    }, [resendCooldown]);
 
-    const handleSignup = async (e) => {
+    const handleChange = e => setFormData({ ...formData, [e.target.name]: e.target.value });
+
+    const handleSignup = async e => {
         e.preventDefault();
+        setError('');
+        setLoading(true);
         try {
             await axios.post(`${API_BASE_URL}/api/auth/signup`, formData);
-
-            setSuccess('Registration successful! Please check your email for OTP.');
-            setStep(2); // Move to OTP step
-            window.scrollTo(0, 0);
+            setSuccess(`OTP sent to ${formData.email}. Please check your inbox.`);
+            setStep(2);
+            setResendCooldown(60);
         } catch (err) {
-            if (axios.isAxiosError(err) && err.response && err.response.data) {
+            if (axios.isAxiosError(err) && err.response?.data) {
                 const data = err.response.data;
-                if (typeof data === 'object') {
-                    const messages = Object.values(data).join(', ');
-                    setError(messages);
-                } else {
-                    setError(String(data));
-                }
+                setError(typeof data === 'object' ? Object.values(data).join(', ') : String(data));
             } else {
                 setError('Registration failed. Please try again.');
             }
+        } finally {
+            setLoading(false);
         }
     };
 
-    const handleVerify = async (e) => {
-        e.preventDefault();
+    const handleResendOtp = async () => {
+        if (resendCooldown > 0 || loading) return;
+        setError('');
+        setSuccess('');
+        setLoading(true);
         try {
-            await axios.post(`${API_BASE_URL}/api/auth/verify-otp`, {
-                email: formData.email,
-                otp
-            });
-            setSuccess('Email verified successfully! Redirecting to login...');
+            await axios.post(`${API_BASE_URL}/api/auth/resend-otp`, { email: formData.email });
+            setSuccess('New OTP sent! Please check your inbox.');
+            setResendCooldown(60);
+        } catch (err) {
+            setError(err.response?.data || 'Failed to resend OTP. Please try again.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleVerify = async e => {
+        e.preventDefault();
+        setError('');
+        setLoading(true);
+        try {
+            await axios.post(`${API_BASE_URL}/api/auth/verify-otp`, { email: formData.email, otp });
+            setSuccess('Email verified! Redirecting to login...');
             setTimeout(() => navigate('/login'), 2000);
         } catch (err) {
-            setError(err.response?.data?.message || 'Verification failed. Invalid OTP.');
+            const msg = err.response?.data;
+            setError(typeof msg === 'string' ? msg : 'Invalid OTP. Please try again.');
+        } finally {
+            setLoading(false);
         }
     };
 
     return (
-        <Container fluid className="d-flex align-items-center justify-content-center bg-light" style={{ minHeight: '100vh' }}>
+        <div style={{
+            minHeight: '100vh', background: '#000',
+            display: 'grid', gridTemplateColumns: '1fr 1fr',
+            fontFamily: 'var(--font-sans)',
+        }}>
+            {/* Left decorative panel */}
             <motion.div
-                initial={{ opacity: 0, y: 40 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6 }}
-                style={{ width: '100%', maxWidth: '1000px' }}
+                initial={{ opacity: 0, x: -40 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.6, ease: EASE }}
+                className="d-none d-lg-flex"
+                style={{
+                    background: '#000', borderRight: '1px solid #1a1a1a',
+                    flexDirection: 'column', justifyContent: 'space-between',
+                    padding: '3rem', position: 'relative', overflow: 'hidden',
+                }}
             >
-                <Card className="shadow-lg border-0 rounded-5 overflow-hidden">
-                    <Row className="g-0">
-                        {/* Left Info Panel */}
-                        <Col
-                            md={6}
-                            className="d-none d-md-flex align-items-center justify-content-center text-white p-5"
-                            style={{
-                                background: 'linear-gradient(135deg, #198754, #4fd1a5)',
-                            }}
-                        >
-                            <div>
-                                <h2 className="fw-bold mb-3">Join RealEstateHelper 🏡</h2>
-                                <p className="opacity-75">
-                                    Create your account to explore verified properties,
-                                    list your own properties, and connect instantly.
-                                </p>
+                <div style={{ position: 'absolute', inset: 0, backgroundImage: 'radial-gradient(circle at 80% 20%, rgba(255,255,255,0.03) 0%, transparent 60%)', pointerEvents: 'none' }} />
+
+                <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#fff', fontWeight: 900, fontSize: '1.25rem', letterSpacing: '-0.04em', textDecoration: 'none' }}>
+                    <ArrowLeft size={16} style={{ opacity: 0.5 }} /> REH
+                </Link>
+
+                <div>
+                    <div style={{ fontSize: 'clamp(3rem, 6vw, 5rem)', fontWeight: 900, letterSpacing: '-0.04em', lineHeight: 1, color: '#fff', marginBottom: '1.5rem' }}>
+                        Start your<br />
+                        <span style={{ color: '#333' }}>real estate</span><br />
+                        journey.
+                    </div>
+                    <p style={{ color: '#555', fontSize: '0.9375rem', lineHeight: 1.7, maxWidth: 340 }}>
+                        No hidden fees. No middlemen. Just you and the perfect property.
+                    </p>
+                    <div style={{ marginTop: '2rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                        {['Verified listings only', '₹0 brokerage commission', 'Direct seller contact', 'Instant booking'].map(item => (
+                            <div key={item} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: '#555' }}>
+                                <CheckCircle size={15} color="#fff" />
+                                <span style={{ fontSize: '0.9rem' }}>{item}</span>
                             </div>
-                        </Col>
+                        ))}
+                    </div>
+                </div>
 
-                        {/* Right Form Panel */}
-                        <Col md={6} className="p-5">
-                            <h3 className="fw-bold mb-4 text-center">Create Your Account</h3>
+                <div style={{ color: '#333', fontSize: '0.8rem' }}>© 2025 RealEstateHelper</div>
+            </motion.div>
 
-                            {error && <Alert variant="danger">{error}</Alert>}
-                            {success && <Alert variant="success">{success}</Alert>}
+            {/* Right form panel */}
+            <motion.div
+                initial={{ opacity: 0, x: 40 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.6, ease: EASE }}
+                style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: 'clamp(2rem, 5vw, 4rem)', background: '#000', overflowY: 'auto' }}
+            >
+                <div style={{ maxWidth: 420, width: '100%', margin: '0 auto', paddingTop: '2rem', paddingBottom: '2rem' }}>
 
-                            {step === 1 ? (
-                                <Form onSubmit={handleSignup}>
-                                    <Row>
-                                        {/* Name */}
-                                        <Col md={6}>
-                                            <Form.Group className="mb-3">
-                                                <Form.Label>Full Name</Form.Label>
-                                                <div className="input-group">
-                                                    <span className="input-group-text bg-light border-end-0">
-                                                        <User size={18} />
-                                                    </span>
-                                                    <Form.Control
-                                                        name="name"
-                                                        placeholder="Your name"
-                                                        onChange={handleChange}
-                                                        required
-                                                        className="border-start-0"
-                                                    />
-                                                </div>
-                                            </Form.Group>
-                                        </Col>
+                    {/* Mobile logo */}
+                    <Link to="/" className="d-lg-none" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#fff', fontWeight: 900, fontSize: '1.1rem', letterSpacing: '-0.04em', textDecoration: 'none', marginBottom: '2.5rem' }}>
+                        <ArrowLeft size={14} style={{ opacity: 0.5 }} /> REH
+                    </Link>
 
-                                        {/* Phone */}
-                                        <Col md={6}>
-                                            <Form.Group className="mb-3">
-                                                <Form.Label>Phone</Form.Label>
-                                                <div className="input-group">
-                                                    <span className="input-group-text bg-light border-end-0">
-                                                        <Phone size={18} />
-                                                    </span>
-                                                    <Form.Control
-                                                        name="phone"
-                                                        placeholder="Mobile number"
-                                                        onChange={handleChange}
-                                                        required
-                                                        className="border-start-0"
-                                                    />
-                                                </div>
-                                            </Form.Group>
-                                        </Col>
-                                    </Row>
+                    {/* Step indicator */}
+                    <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '2rem' }}>
+                        {[1, 2].map(s => (
+                            <div key={s} style={{ height: 3, flex: 1, borderRadius: 10, background: step >= s ? '#fff' : '#222', transition: 'background 0.4s ease' }} />
+                        ))}
+                    </div>
 
-                                    {/* Email */}
-                                    <Form.Group className="mb-3">
-                                        <Form.Label>Email</Form.Label>
-                                        <div className="input-group">
-                                            <span className="input-group-text bg-light border-end-0">
-                                                <Mail size={18} />
-                                            </span>
-                                            <Form.Control
-                                                type="email"
-                                                name="email"
-                                                placeholder="Enter email"
-                                                onChange={handleChange}
-                                                required
-                                                className="border-start-0"
-                                            />
+                    <AnimatePresence mode="wait">
+                        {step === 1 ? (
+                            <motion.div key="step1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.35, ease: EASE }}>
+                                <h1 style={{ fontSize: 'clamp(1.75rem, 4vw, 2.5rem)', fontWeight: 900, letterSpacing: '-0.04em', color: '#fff', marginBottom: '0.5rem', lineHeight: 1.1 }}>
+                                    Create account.
+                                </h1>
+                                <p style={{ color: '#555', fontSize: '0.9375rem', marginBottom: '2rem' }}>
+                                    Already registered?{' '}
+                                    <Link to="/login" style={{ color: '#fff', fontWeight: 600, textDecoration: 'none' }}>Log in</Link>
+                                </p>
+
+                                <AnimatePresence>
+                                    {error && (
+                                        <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                                            style={{ background: 'rgba(255,60,60,0.1)', border: '1px solid rgba(255,60,60,0.3)', borderRadius: 8, padding: '0.75rem 1rem', color: '#ff6b6b', fontSize: '0.875rem', marginBottom: '1rem' }}>
+                                            {error}
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+
+                                <form onSubmit={handleSignup} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                    {/* Role selector */}
+                                    <div>
+                                        <label style={{ display: 'block', color: '#888', fontSize: '0.8rem', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '0.5rem' }}>I am a</label>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                                            {['BUYER', 'SELLER'].map(role => (
+                                                <button key={role} type="button" onClick={() => setFormData({ ...formData, role })}
+                                                    style={{ background: formData.role === role ? '#fff' : '#111', color: formData.role === role ? '#000' : '#555', border: '1px solid', borderColor: formData.role === role ? '#fff' : '#2a2a2a', borderRadius: 10, padding: '0.75rem', fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '0.875rem', cursor: 'pointer', transition: 'all 0.2s' }}>
+                                                    {role === 'BUYER' ? '🏠 Buyer' : '🏗 Seller'}
+                                                </button>
+                                            ))}
                                         </div>
-                                    </Form.Group>
+                                    </div>
 
-                                    {/* Password */}
-                                    <Form.Group className="mb-3">
-                                        <Form.Label>Password</Form.Label>
-                                        <div className="input-group">
-                                            <span className="input-group-text bg-light border-end-0">
-                                                <Lock size={18} />
-                                            </span>
-                                            <Form.Control
-                                                type={showPassword ? "text" : "password"}
-                                                name="password"
-                                                placeholder="Create password"
-                                                onChange={handleChange}
-                                                required
-                                                className="border-start-0 border-end-0"
-                                            />
-                                            <Button
-                                                variant="light"
-                                                className="bg-light border-start-0 border-top border-bottom"
-                                                onClick={() => setShowPassword(!showPassword)}
-                                                tabIndex="-1"
-                                                style={{ borderColor: '#ced4da' }}
-                                            >
-                                                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                                            </Button>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                        <div>
+                                            <label style={{ display: 'block', color: '#888', fontSize: '0.75rem', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '0.4rem' }}>Full Name</label>
+                                            <AuthInput icon={User} name="name" placeholder="Your name" onChange={handleChange} required />
                                         </div>
-                                    </Form.Group>
+                                        <div>
+                                            <label style={{ display: 'block', color: '#888', fontSize: '0.75rem', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '0.4rem' }}>Phone</label>
+                                            <AuthInput icon={Phone} name="phone" placeholder="Mobile" onChange={handleChange} required />
+                                        </div>
+                                    </div>
 
-                                    {/* Role */}
-                                    <Form.Group className="mb-3">
-                                        <Form.Label>I am a</Form.Label>
-                                        <Form.Select name="role" onChange={handleChange} className="rounded-pill">
-                                            <option value="BUYER">Buyer</option>
-                                            <option value="SELLER">Seller</option>
-                                        </Form.Select>
-                                    </Form.Group>
+                                    <div>
+                                        <label style={{ display: 'block', color: '#888', fontSize: '0.8rem', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Email address</label>
+                                        <AuthInput icon={Mail} type="email" name="email" placeholder="you@example.com" onChange={handleChange} required />
+                                    </div>
 
-                                    {/* Seller Extra Fields */}
+                                    <div>
+                                        <label style={{ display: 'block', color: '#888', fontSize: '0.8rem', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Password</label>
+                                        <AuthInput icon={Lock} type={showPassword ? 'text' : 'password'} name="password" placeholder="Create a password" onChange={handleChange} required
+                                            rightEl={
+                                                <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#555', padding: 0, display: 'flex' }}>
+                                                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                                </button>
+                                            }
+                                        />
+                                    </div>
+
                                     {formData.role === 'SELLER' && (
-                                        <>
-                                            <Form.Group className="mb-3">
-                                                <Form.Label>Company Name (Optional)</Form.Label>
-                                                <div className="input-group">
-                                                    <span className="input-group-text bg-light border-end-0">
-                                                        <Building2 size={18} />
-                                                    </span>
-                                                    <Form.Control
-                                                        name="companyName"
-                                                        placeholder="Company name"
-                                                        onChange={handleChange}
-                                                        className="border-start-0"
-                                                    />
-                                                </div>
-                                            </Form.Group>
-
-                                            <Form.Group className="mb-3">
-                                                <Form.Label>Address</Form.Label>
-                                                <div className="input-group">
-                                                    <span className="input-group-text bg-light border-end-0">
-                                                        <MapPin size={18} />
-                                                    </span>
-                                                    <Form.Control
-                                                        as="textarea"
-                                                        rows={2}
-                                                        name="address"
-                                                        placeholder="Business address"
-                                                        onChange={handleChange}
-                                                        required
-                                                        className="border-start-0"
-                                                    />
-                                                </div>
-                                            </Form.Group>
-                                        </>
+                                        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+                                            style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', overflow: 'hidden' }}>
+                                            <div>
+                                                <label style={{ display: 'block', color: '#888', fontSize: '0.75rem', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '0.4rem' }}>Company (Optional)</label>
+                                                <AuthInput icon={Building2} name="companyName" placeholder="Company name" onChange={handleChange} />
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', color: '#888', fontSize: '0.75rem', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '0.4rem' }}>Address</label>
+                                                <AuthInput icon={MapPin} name="address" placeholder="Business address" onChange={handleChange} as="textarea" required />
+                                            </div>
+                                        </motion.div>
                                     )}
 
-                                    <Button
-                                        variant="success"
-                                        type="submit"
-                                        className="w-100 rounded-pill py-3 fw-bold shadow-sm mt-3"
-                                    >
-                                        Send OTP
-                                    </Button>
-                                </Form>
-                            ) : (
-                                <Form onSubmit={handleVerify}>
-                                    <div className="text-center mb-4">
-                                        <div className="bg-light rounded-circle d-inline-flex p-3 mb-3">
-                                            <Mail size={32} className="text-primary" />
-                                        </div>
-                                        <h4>Verify Your Email</h4>
-                                        <p className="text-muted small">
-                                            We've sent a 6-digit code to <strong>{formData.email}</strong>.
-                                        </p>
+                                    <motion.button type="submit" disabled={loading} whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}
+                                        style={{ background: '#fff', color: '#000', border: 'none', borderRadius: 10, padding: '0.9rem', fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '0.9375rem', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.6 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
+                                        {loading ? 'Sending OTP...' : <>Send OTP <ArrowRight size={16} /></>}
+                                    </motion.button>
+                                </form>
+                            </motion.div>
+                        ) : (
+                            <motion.div key="step2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.35, ease: EASE }}>
+                                <div style={{ marginBottom: '2rem' }}>
+                                    <div style={{ width: 56, height: 56, borderRadius: '50%', border: '1px solid #2a2a2a', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem' }}>
+                                        <Mail size={24} color="#fff" />
                                     </div>
+                                    <h1 style={{ fontSize: '2rem', fontWeight: 900, letterSpacing: '-0.04em', color: '#fff', marginBottom: '0.5rem' }}>
+                                        Check your email.
+                                    </h1>
+                                    <p style={{ color: '#555', fontSize: '0.9375rem', lineHeight: 1.6 }}>
+                                        We sent a 6-digit OTP to{' '}
+                                        <span style={{ color: '#fff', fontWeight: 600 }}>{formData.email}</span>.
+                                        <br />
+                                        <span style={{ fontSize: '0.8rem' }}>Check your spam folder if you don't see it.</span>
+                                    </p>
+                                </div>
 
-                                    <Form.Group className="mb-4">
-                                        <Form.Label>One-Time Password (OTP)</Form.Label>
-                                        <Form.Control
-                                            type="text"
-                                            placeholder="Enter 6-digit OTP"
-                                            value={otp}
-                                            onChange={(e) => setOtp(e.target.value)}
-                                            required
-                                            maxLength={6}
-                                            className="text-center fs-4 letter-spacing-2"
-                                            style={{ letterSpacing: '0.5em' }}
+                                <AnimatePresence>
+                                    {success && (
+                                        <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                                            style={{ background: 'rgba(60,255,120,0.08)', border: '1px solid rgba(60,255,120,0.2)', borderRadius: 8, padding: '0.75rem 1rem', color: '#4ade80', fontSize: '0.875rem', marginBottom: '1rem' }}>
+                                            {success}
+                                        </motion.div>
+                                    )}
+                                    {error && (
+                                        <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                                            style={{ background: 'rgba(255,60,60,0.1)', border: '1px solid rgba(255,60,60,0.3)', borderRadius: 8, padding: '0.75rem 1rem', color: '#ff6b6b', fontSize: '0.875rem', marginBottom: '1rem' }}>
+                                            {error}
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+
+                                <form onSubmit={handleVerify} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                    <div>
+                                        <label style={{ display: 'block', color: '#888', fontSize: '0.8rem', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
+                                            One-Time Password
+                                        </label>
+                                        <input
+                                            type="text" value={otp} onChange={e => setOtp(e.target.value)}
+                                            required maxLength={6} placeholder="• • • • • •"
+                                            style={{ width: '100%', background: '#111', border: '1px solid #2a2a2a', borderRadius: 10, padding: '1rem', color: '#fff', fontFamily: 'var(--font-sans)', fontSize: '1.75rem', fontWeight: 900, letterSpacing: '0.4em', textAlign: 'center', outline: 'none', transition: 'border-color 0.2s', boxSizing: 'border-box' }}
+                                            onFocus={e => e.target.style.borderColor = '#fff'}
+                                            onBlur={e => e.target.style.borderColor = '#2a2a2a'}
                                         />
-                                    </Form.Group>
-
-                                    <Button
-                                        variant="primary"
-                                        type="submit"
-                                        className="w-100 rounded-pill py-3 fw-bold shadow-sm"
-                                    >
-                                        Verify Email
-                                    </Button>
-
-                                    <div className="text-center mt-3">
-                                        <Button variant="link" className="text-muted text-decoration-none sm" onClick={() => setStep(1)}>
-                                            Back to Signup
-                                        </Button>
                                     </div>
-                                </Form>
-                            )}
 
-                            <div className="text-center mt-4">
-                                <small>
-                                    Already have an account?{' '}
-                                    <Link to="/login" className="fw-semibold text-decoration-none">
-                                        Login
-                                    </Link>
-                                </small>
-                            </div>
-                        </Col>
-                    </Row>
-                </Card>
+                                    <motion.button type="submit" disabled={loading} whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}
+                                        style={{ background: '#fff', color: '#000', border: 'none', borderRadius: 10, padding: '0.9rem', fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '0.9375rem', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.6 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                                        {loading ? 'Verifying...' : <>Verify &amp; Continue <ArrowRight size={16} /></>}
+                                    </motion.button>
+
+                                    {/* Resend OTP button */}
+                                    <button
+                                        type="button"
+                                        onClick={handleResendOtp}
+                                        disabled={resendCooldown > 0 || loading}
+                                        style={{
+                                            background: 'none', border: '1px solid #2a2a2a', borderRadius: 10,
+                                            color: resendCooldown > 0 ? '#333' : '#888',
+                                            cursor: resendCooldown > 0 || loading ? 'not-allowed' : 'pointer',
+                                            fontFamily: 'var(--font-sans)', fontSize: '0.875rem',
+                                            padding: '0.75rem',
+                                            display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center',
+                                            transition: 'all 0.2s',
+                                        }}
+                                        onMouseEnter={e => { if (resendCooldown === 0) e.currentTarget.style.borderColor = '#fff'; e.currentTarget.style.color = resendCooldown === 0 ? '#fff' : '#333'; }}
+                                        onMouseLeave={e => { e.currentTarget.style.borderColor = '#2a2a2a'; e.currentTarget.style.color = resendCooldown > 0 ? '#333' : '#888'; }}
+                                    >
+                                        <RefreshCw size={14} />
+                                        {resendCooldown > 0 ? `Resend OTP in ${resendCooldown}s` : 'Resend OTP'}
+                                    </button>
+
+                                    <button type="button" onClick={() => { setStep(1); setError(''); setOtp(''); }}
+                                        style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontFamily: 'var(--font-sans)', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center', transition: 'color 0.2s' }}
+                                        onMouseEnter={e => e.currentTarget.style.color = '#fff'}
+                                        onMouseLeave={e => e.currentTarget.style.color = '#555'}>
+                                        <ArrowLeft size={14} /> Back to registration
+                                    </button>
+                                </form>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
             </motion.div>
-        </Container >
+        </div>
     );
 };
 

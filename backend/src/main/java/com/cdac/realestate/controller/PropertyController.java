@@ -1,5 +1,7 @@
 package com.cdac.realestate.controller;
 
+import com.cdac.realestate.dto.PropertyDTO;
+import com.cdac.realestate.dto.PropertyMapper;
 import com.cdac.realestate.entity.Property;
 import com.cdac.realestate.security.UserDetailsImpl;
 import com.cdac.realestate.service.PropertyService;
@@ -19,21 +21,26 @@ public class PropertyController {
 
     @Autowired
     PropertyService propertyService;
+    
+    @Autowired
+    PropertyMapper propertyMapper;
 
     // Public search (only approved)
     @GetMapping
-    public List<Property> getAllProperties(
+    public org.springframework.data.domain.Page<PropertyDTO> getAllProperties(
             @RequestParam(required = false) String city,
             @RequestParam(required = false) Double minPrice,
             @RequestParam(required = false) Double maxPrice,
             @RequestParam(required = false) Property.PropertyType type,
-            @RequestParam(required = false) Integer beds) {
-        return propertyService.getAllProperties(city, minPrice, maxPrice, type, beds);
+            @RequestParam(required = false) Integer beds,
+            org.springframework.data.domain.Pageable pageable) {
+        return propertyService.getAllProperties(city, minPrice, maxPrice, type, beds, pageable)
+                .map(propertyMapper::toDto);
     }
 
     @GetMapping("/{id}")
-    public Property getPropertyById(@PathVariable Long id) {
-        return propertyService.getPropertyById(id);
+    public PropertyDTO getPropertyById(@PathVariable Long id) {
+        return propertyMapper.toDto(propertyService.getPropertyById(id));
     }
 
     @Autowired
@@ -45,7 +52,7 @@ public class PropertyController {
     // Seller: Add Property with Image
     @PostMapping(consumes = { org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE })
     @PreAuthorize("hasAuthority('SELLER')")
-    public Property addProperty(
+    public PropertyDTO addProperty(
             @RequestPart("property") @Valid Property property,
             @RequestPart(value = "image", required = false) org.springframework.web.multipart.MultipartFile image,
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
@@ -60,13 +67,13 @@ public class PropertyController {
         // Send Email
         emailService.sendPropertyAddedEmail(userDetails.getUsername(), userDetails.getName(), savedProperty.getTitle());
 
-        return savedProperty;
+        return propertyMapper.toDto(savedProperty);
     }
 
     // Seller: Update Property
     @PutMapping(value = "/{id}", consumes = { org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE })
     @PreAuthorize("hasAuthority('SELLER')")
-    public Property updateProperty(@PathVariable Long id,
+    public PropertyDTO updateProperty(@PathVariable Long id,
             @RequestPart("property") @Valid Property property,
             @RequestPart(value = "image", required = false) org.springframework.web.multipart.MultipartFile image,
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
@@ -76,14 +83,14 @@ public class PropertyController {
             property.setImages(filename);
         }
 
-        return propertyService.updateProperty(id, property, userDetails.getId());
+        return propertyMapper.toDto(propertyService.updateProperty(id, property, userDetails.getId()));
     }
 
     // Seller: My Listings
     @GetMapping("/my-listings")
     @PreAuthorize("hasAuthority('SELLER')")
-    public List<Property> getMyProperties(@AuthenticationPrincipal UserDetailsImpl userDetails) {
-        return propertyService.getPropertiesBySeller(userDetails.getId());
+    public List<PropertyDTO> getMyProperties(@AuthenticationPrincipal UserDetailsImpl userDetails) {
+        return propertyMapper.toDtoList(propertyService.getPropertiesBySeller(userDetails.getId()));
     }
 
     // Seller: Delete Listing
@@ -97,15 +104,15 @@ public class PropertyController {
     // Admin: Get Pending
     @GetMapping("/pending")
     @PreAuthorize("hasAuthority('ADMIN')")
-    public List<Property> getPendingProperties() {
-        return propertyService.getPendingProperties();
+    public List<PropertyDTO> getPendingProperties() {
+        return propertyMapper.toDtoList(propertyService.getPendingProperties());
     }
 
     // Admin: Approve/Reject
     // Admin: Approve/Reject
     @PutMapping("/{id}/status")
     @PreAuthorize("hasAuthority('ADMIN')")
-    public Property updateStatus(@PathVariable Long id,
+    public PropertyDTO updateStatus(@PathVariable Long id,
             @RequestParam Property.PropertyStatus status,
             @RequestParam(required = false) String reason) {
         Property updatedProperty = propertyService.updateStatus(id, status, reason);
@@ -120,6 +127,6 @@ public class PropertyController {
                     reason);
         }
 
-        return updatedProperty;
+        return propertyMapper.toDto(updatedProperty);
     }
 }

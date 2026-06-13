@@ -1,8 +1,41 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Card, Form, Button, Alert, Row, Col, Badge } from 'react-bootstrap';
 import axios from 'axios';
-import { UserCircle, Save, Edit3 } from 'lucide-react';
+import { UserCircle, Save, Edit3, Mail, AlertCircle } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import API_BASE_URL from '../config/api';
+
+const EASE = [0.16, 1, 0.3, 1];
+
+// --- Styles ---
+const inputStyle = {
+    width: '100%',
+    background: '#0a0a0a',
+    border: '1px solid #333',
+    borderRadius: 8,
+    padding: '0.85rem 1rem',
+    color: '#fff',
+    fontFamily: 'var(--font-sans)',
+    fontSize: '0.9rem',
+    outline: 'none',
+    transition: 'border-color 0.2s',
+};
+
+const labelStyle = {
+    display: 'block',
+    color: '#888',
+    fontSize: '0.75rem',
+    letterSpacing: '0.1em',
+    textTransform: 'uppercase',
+    marginBottom: '0.5rem',
+    fontWeight: 600
+};
+
+const FormGroup = ({ label, children }) => (
+    <div style={{ marginBottom: '1.5rem' }}>
+        <label style={labelStyle}>{label}</label>
+        {children}
+    </div>
+);
 
 const Profile = ({ user, setUser }) => {
     const [formData, setFormData] = useState({
@@ -67,15 +100,15 @@ const Profile = ({ user, setUser }) => {
 
         // Validation
         if (!formData.name.trim()) {
-            setNotification({ msg: 'Name cannot be empty.', type: 'danger' });
+            setNotification({ msg: 'Name cannot be empty.', type: 'error' });
             return;
         }
         if (!/^\d{10}$/.test(formData.phone)) {
-            setNotification({ msg: 'Phone number must be exactly 10 digits.', type: 'danger' });
+            setNotification({ msg: 'Phone number must be exactly 10 digits.', type: 'error' });
             return;
         }
         if (formData.zip && !/^\d{6}$/.test(formData.zip)) {
-            setNotification({ msg: 'Zip code must be 6 digits.', type: 'danger' });
+            setNotification({ msg: 'Zip code must be 6 digits.', type: 'error' });
             return;
         }
 
@@ -83,7 +116,7 @@ const Profile = ({ user, setUser }) => {
         if ((formData.city && !alphaRegex.test(formData.city)) ||
             (formData.state && !alphaRegex.test(formData.state)) ||
             (formData.address && !alphaRegex.test(formData.address))) {
-            setNotification({ msg: 'Address, City, and State must contain only alphabets.', type: 'danger' });
+            setNotification({ msg: 'Address, City, and State must contain only alphabets.', type: 'error' });
             return;
         }
 
@@ -99,180 +132,231 @@ const Profile = ({ user, setUser }) => {
             setEditMode(false);
             setUser({ ...user, ...res.data });
         } catch (e) {
-            setNotification({ msg: 'Failed to update profile.', type: 'danger' });
+            setNotification({ msg: 'Failed to update profile.', type: 'error' });
         }
     };
 
     return (
-        <Container className="py-5" style={{ maxWidth: '1000px' }}>
-            <Card className="shadow border-0 rounded-4 overflow-hidden">
-
-                {/* ===== HEADER ===== */}
-                <div
-                    className="text-white text-center py-5"
-                    style={{ background: 'linear-gradient(135deg, #5f72ff, #9b5cff)' }}
-                >
-                    <div className="mb-3">
-                        <div className="bg-white bg-opacity-25 rounded-circle d-inline-flex p-3">
-                            <UserCircle size={70} />
+        <div style={{ background: '#000', minHeight: '100vh', paddingTop: 'calc(var(--navbar-height) + 3rem)', paddingBottom: '4rem', display: 'flex', justifyContent: 'center' }}>
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, ease: EASE }}
+                style={{ width: '100%', maxWidth: 800, padding: '0 1.5rem' }}
+            >
+                {/* --- Header --- */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', marginBottom: '2.5rem' }}>
+                    <div style={{ width: 80, height: 80, background: '#111', border: '1px solid #222', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <UserCircle size={40} color="#fff" />
+                    </div>
+                    <div>
+                        <h1 style={{ color: '#fff', fontSize: 'clamp(1.5rem, 3vw, 2rem)', fontWeight: 900, letterSpacing: '-0.02em', margin: '0 0 0.4rem 0' }}>
+                            My Profile
+                        </h1>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                            <span style={{ color: '#aaa', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                <Mail size={14} /> {user.email}
+                            </span>
+                            <span style={{ background: '#1a1a1a', border: '1px solid #333', color: '#fff', fontSize: '0.7rem', fontWeight: 700, padding: '3px 10px', borderRadius: 100, letterSpacing: '0.05em' }}>
+                                {user.role}
+                            </span>
                         </div>
                     </div>
-
-                    <h3 className="fw-bold mb-1">My Profile</h3>
-                    <p className="mb-2 opacity-75">{user.email}</p>
-
-                    <Badge bg="success" className="px-3 py-2 rounded-pill">
-                        {user.role}
-                    </Badge>
                 </div>
 
-                {/* ===== BODY ===== */}
-                <Card.Body className="p-4 p-md-5">
-
-                    <div className="d-flex align-items-center gap-2 mb-4">
-                        <span className="border-start border-4 border-primary ps-2 fw-bold">
-                            Personal Information
-                        </span>
-                    </div>
-
+                {/* --- Notifications --- */}
+                <AnimatePresence>
                     {notification && (
-                        <Alert
-                            variant={notification.type}
-                            dismissible
-                            onClose={() => setNotification(null)}
+                        <motion.div 
+                            initial={{ opacity: 0, height: 0, marginBottom: 0 }} 
+                            animate={{ opacity: 1, height: 'auto', marginBottom: '2rem' }} 
+                            exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                            style={{ overflow: 'hidden' }}
                         >
-                            {notification.msg}
-                        </Alert>
+                            <div style={{
+                                background: notification.type === 'success' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                                border: `1px solid ${notification.type === 'success' ? '#22c55e' : '#ef4444'}`,
+                                color: notification.type === 'success' ? '#4ade80' : '#f87171',
+                                padding: '1rem 1.25rem',
+                                borderRadius: 8,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.75rem',
+                                fontSize: '0.9rem',
+                                fontWeight: 600
+                            }}>
+                                <AlertCircle size={18} />
+                                {notification.msg}
+                            </div>
+                        </motion.div>
                     )}
+                </AnimatePresence>
 
-                    {/* ✅ Form submit ONLY on Save Changes */}
-                    <Form onSubmit={handleSubmit}>
-                        <Row className="g-4">
-                            <Col md={6}>
-                                <Form.Group>
-                                    <Form.Label>Full Name</Form.Label>
-                                    <Form.Control
-                                        name="name"
-                                        value={formData.name}
-                                        onChange={handleChange}
-                                        disabled={!editMode}
-                                    />
-                                </Form.Group>
-                            </Col>
+                {/* --- Form Card --- */}
+                <div style={{ background: '#050505', border: '1px solid #1a1a1a', borderRadius: 16, padding: 'clamp(1.5rem, 4vw, 3rem)' }}>
+                    <form onSubmit={handleSubmit}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
+                            
+                            <FormGroup label="Full Name">
+                                <input
+                                    type="text"
+                                    name="name"
+                                    value={formData.name}
+                                    onChange={handleChange}
+                                    disabled={!editMode}
+                                    style={{ ...inputStyle, opacity: editMode ? 1 : 0.5, cursor: editMode ? 'text' : 'not-allowed' }}
+                                    onFocus={(e) => editMode && (e.currentTarget.style.borderColor = '#666')}
+                                    onBlur={(e) => editMode && (e.currentTarget.style.borderColor = '#333')}
+                                />
+                            </FormGroup>
 
-                            <Col md={6}>
-                                <Form.Group>
-                                    <Form.Label>Email Address</Form.Label>
-                                    <Form.Control value={user.email} disabled />
-                                </Form.Group>
-                            </Col>
+                            <FormGroup label="Phone Number">
+                                <input
+                                    type="text"
+                                    name="phone"
+                                    value={formData.phone}
+                                    onChange={handleChange}
+                                    disabled={!editMode}
+                                    style={{ ...inputStyle, opacity: editMode ? 1 : 0.5, cursor: editMode ? 'text' : 'not-allowed' }}
+                                    onFocus={(e) => editMode && (e.currentTarget.style.borderColor = '#666')}
+                                    onBlur={(e) => editMode && (e.currentTarget.style.borderColor = '#333')}
+                                />
+                            </FormGroup>
 
-                            <Col md={6}>
-                                <Form.Group>
-                                    <Form.Label>Phone Number</Form.Label>
-                                    <Form.Control
-                                        name="phone"
-                                        value={formData.phone}
-                                        onChange={handleChange}
-                                        disabled={!editMode}
-                                    />
-                                </Form.Group>
-                            </Col>
+                            <FormGroup label="City">
+                                <input
+                                    type="text"
+                                    name="city"
+                                    value={formData.city}
+                                    onChange={handleChange}
+                                    disabled={!editMode}
+                                    style={{ ...inputStyle, opacity: editMode ? 1 : 0.5, cursor: editMode ? 'text' : 'not-allowed' }}
+                                    onFocus={(e) => editMode && (e.currentTarget.style.borderColor = '#666')}
+                                    onBlur={(e) => editMode && (e.currentTarget.style.borderColor = '#333')}
+                                />
+                            </FormGroup>
 
-                            <Col md={6}>
-                                <Form.Group>
-                                    <Form.Label>City</Form.Label>
-                                    <Form.Control
-                                        name="city"
-                                        value={formData.city}
-                                        onChange={handleChange}
-                                        disabled={!editMode}
-                                    />
-                                </Form.Group>
-                            </Col>
+                            <FormGroup label="State">
+                                <input
+                                    type="text"
+                                    name="state"
+                                    value={formData.state}
+                                    onChange={handleChange}
+                                    disabled={!editMode}
+                                    style={{ ...inputStyle, opacity: editMode ? 1 : 0.5, cursor: editMode ? 'text' : 'not-allowed' }}
+                                    onFocus={(e) => editMode && (e.currentTarget.style.borderColor = '#666')}
+                                    onBlur={(e) => editMode && (e.currentTarget.style.borderColor = '#333')}
+                                />
+                            </FormGroup>
 
-                            <Col md={6}>
-                                <Form.Group>
-                                    <Form.Label>Address</Form.Label>
-                                    <Form.Control
-                                        name="address"
-                                        value={formData.address}
-                                        onChange={handleChange}
-                                        disabled={!editMode}
-                                    />
-                                </Form.Group>
-                            </Col>
+                            <FormGroup label="Address">
+                                <input
+                                    type="text"
+                                    name="address"
+                                    value={formData.address}
+                                    onChange={handleChange}
+                                    disabled={!editMode}
+                                    style={{ ...inputStyle, opacity: editMode ? 1 : 0.5, cursor: editMode ? 'text' : 'not-allowed' }}
+                                    onFocus={(e) => editMode && (e.currentTarget.style.borderColor = '#666')}
+                                    onBlur={(e) => editMode && (e.currentTarget.style.borderColor = '#333')}
+                                />
+                            </FormGroup>
 
-                            <Col md={6}>
-                                <Form.Group>
-                                    <Form.Label>State</Form.Label>
-                                    <Form.Control
-                                        name="state"
-                                        value={formData.state}
-                                        onChange={handleChange}
-                                        disabled={!editMode}
-                                    />
-                                </Form.Group>
-                            </Col>
-
-                            <Col md={6}>
-                                <Form.Group>
-                                    <Form.Label>Zip Code</Form.Label>
-                                    <Form.Control
-                                        name="zip"
-                                        value={formData.zip}
-                                        onChange={handleChange}
-                                        disabled={!editMode}
-                                    />
-                                </Form.Group>
-                            </Col>
+                            <FormGroup label="Zip Code">
+                                <input
+                                    type="text"
+                                    name="zip"
+                                    value={formData.zip}
+                                    onChange={handleChange}
+                                    disabled={!editMode}
+                                    style={{ ...inputStyle, opacity: editMode ? 1 : 0.5, cursor: editMode ? 'text' : 'not-allowed' }}
+                                    onFocus={(e) => editMode && (e.currentTarget.style.borderColor = '#666')}
+                                    onBlur={(e) => editMode && (e.currentTarget.style.borderColor = '#333')}
+                                />
+                            </FormGroup>
 
                             {user.role === 'SELLER' && (
-                                <Col md={6}>
-                                    <Form.Group>
-                                        <Form.Label>Company Name</Form.Label>
-                                        <Form.Control
-                                            name="companyName"
-                                            value={formData.companyName}
-                                            onChange={handleChange}
-                                            disabled={!editMode}
-                                        />
-                                    </Form.Group>
-                                </Col>
-                            )}
-                        </Row>
-
-                        {/* ✅ BUTTONS */}
-                        <div className="mt-5 d-flex flex-column gap-3">
-                            {/* Edit Button (not submit) */}
-                            <Button
-                                type="button"
-                                variant="secondary"
-                                className="w-100 py-3 rounded-pill fw-bold"
-                                onClick={() => setEditMode(true)}
-                                disabled={editMode}
-                            >
-                                <Edit3 size={18} className="me-2" />
-                                Edit Profile
-                            </Button>
-
-                            {/* Save Button (submit) */}
-                            {editMode && (
-                                <Button
-                                    type="submit"
-                                    variant="primary"
-                                    className="w-100 py-3 rounded-pill fw-bold"
-                                >
-                                    <Save size={18} className="me-2" />
-                                    Save Changes
-                                </Button>
+                                <FormGroup label="Company Name">
+                                    <input
+                                        type="text"
+                                        name="companyName"
+                                        value={formData.companyName}
+                                        onChange={handleChange}
+                                        disabled={!editMode}
+                                        style={{ ...inputStyle, opacity: editMode ? 1 : 0.5, cursor: editMode ? 'text' : 'not-allowed' }}
+                                        onFocus={(e) => editMode && (e.currentTarget.style.borderColor = '#666')}
+                                        onBlur={(e) => editMode && (e.currentTarget.style.borderColor = '#333')}
+                                    />
+                                </FormGroup>
                             )}
                         </div>
-                    </Form>
-                </Card.Body>
-            </Card>
-        </Container>
+
+                        {/* --- Buttons --- */}
+                        <div style={{ marginTop: '3rem', paddingTop: '2rem', borderTop: '1px solid #1a1a1a', display: 'flex', justifyContent: 'flex-end', gap: '1rem', flexWrap: 'wrap' }}>
+                            {!editMode ? (
+                                <button
+                                    type="button"
+                                    onClick={() => setEditMode(true)}
+                                    style={{
+                                        background: '#fff', color: '#000', border: 'none', borderRadius: 8,
+                                        padding: '0.875rem 2rem', fontSize: '0.9rem', fontWeight: 700,
+                                        display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer',
+                                        transition: 'opacity 0.2s',
+                                        width: '100%', maxWidth: 'max-content'
+                                    }}
+                                    onMouseEnter={e => e.currentTarget.style.opacity = 0.8}
+                                    onMouseLeave={e => e.currentTarget.style.opacity = 1}
+                                >
+                                    <Edit3 size={16} /> Edit Profile
+                                </button>
+                            ) : (
+                                <>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setEditMode(false);
+                                            // Reset to original data
+                                            setFormData({
+                                                name: user.name || '', phone: user.phone || '', city: user.city || '',
+                                                state: user.state || '', address: user.address || '', zip: user.zip || '',
+                                                companyName: user.companyName || ''
+                                            });
+                                            setNotification(null);
+                                        }}
+                                        style={{
+                                            background: 'transparent', color: '#fff', border: '1px solid #333', borderRadius: 8,
+                                            padding: '0.875rem 2rem', fontSize: '0.9rem', fontWeight: 600,
+                                            cursor: 'pointer', transition: 'background 0.2s',
+                                            width: '100%', maxWidth: 'max-content'
+                                        }}
+                                        onMouseEnter={e => e.currentTarget.style.background = '#111'}
+                                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        style={{
+                                            background: '#fff', color: '#000', border: 'none', borderRadius: 8,
+                                            padding: '0.875rem 2rem', fontSize: '0.9rem', fontWeight: 700,
+                                            display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer',
+                                            transition: 'opacity 0.2s',
+                                            width: '100%', maxWidth: 'max-content'
+                                        }}
+                                        onMouseEnter={e => e.currentTarget.style.opacity = 0.8}
+                                        onMouseLeave={e => e.currentTarget.style.opacity = 1}
+                                    >
+                                        <Save size={16} /> Save Changes
+                                    </button>
+                                </>
+                            )}
+                        </div>
+                    </form>
+                </div>
+            </motion.div>
+        </div>
     );
 };
 
 export default Profile;
+

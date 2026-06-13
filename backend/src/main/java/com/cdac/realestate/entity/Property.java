@@ -5,10 +5,15 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import jakarta.validation.constraints.*;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
+
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "properties")
+@SQLDelete(sql = "UPDATE properties SET is_deleted = true WHERE id=?")
+@SQLRestriction("is_deleted = false")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -66,12 +71,18 @@ public class Property {
     @Column(columnDefinition = "TEXT")
     private String rejectionReason;
 
+    @Column(columnDefinition = "JSON")
+    private String additionalDetails;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "property_status", nullable = false)
     private PropertyStatus status = PropertyStatus.PENDING;
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
+    
+    @Column(name = "is_deleted", nullable = false)
+    private boolean isDeleted = false;
 
     @PrePersist
     protected void onCreate() {
@@ -79,7 +90,7 @@ public class Property {
     }
 
     public enum PropertyType {
-        HOUSE, LAND, FARM, APARTMENT, VILLA, COMMERCIAL
+        HOUSE, LAND, FARM, FARMLAND, APARTMENT, VILLA, COMMERCIAL, RESIDENTIAL_PLOT, PG_HOSTEL, OTHER
     }
 
     public enum PropertyStatus {

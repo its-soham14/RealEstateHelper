@@ -1,454 +1,480 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Tabs, Tab, Table, Button, Modal, Form, Row, Col, Alert, Badge, Card } from 'react-bootstrap';
 import axios from 'axios';
-import { Plus, Trash, MessageCircle, Mail, Phone, Heart } from 'lucide-react';
-import PropertyMap from '../components/PropertyMap';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Plus, Home, Edit3, Trash2, X, Image as ImageIcon } from 'lucide-react';
 import API_BASE_URL from '../config/api';
+import PropertyCard from '../components/PropertyCard';
+
+const EASE = [0.16, 1, 0.3, 1];
+
+const inputStyle = {
+    width: '100%', background: '#0a0a0a', border: '1px solid #333',
+    borderRadius: 8, padding: '0.75rem', color: '#fff',
+    fontFamily: 'var(--font-sans)', fontSize: '0.875rem', outline: 'none',
+    boxSizing: 'border-box'
+};
 
 const SellerDashboard = ({ user }) => {
-    const [activeTab, setActiveTab] = useState('listings');
-    const [myProperties, setMyProperties] = useState([]);
-    const [leads, setLeads] = useState([]);
-    const [transactions, setTransactions] = useState([]);
-    const [showAddModal, setShowAddModal] = useState(false);
-    const [newProperty, setNewProperty] = useState({
-        type: 'HOUSE',
-        price: '',
-        address: '',
-        city: '',
-        area: '',
-        beds: '',
-        baths: '',
-        bhk: '',
-        description: '',
-        images: '',
-        title: ''
-    });
-    const [notification, setNotification] = useState(null);
-    const [modalError, setModalError] = useState(null);
+    const [properties, setProperties] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
 
-    const fetchMyProperties = async () => {
+    const [formData, setFormData] = useState({
+        title: '', type: 'HOUSE', price: '', area: '', beds: '', baths: '', bhk: '',
+        description: '', address: '', city: ''
+    });
+    const [additionalDetails, setAdditionalDetails] = useState({});
+    const [imageFile, setImageFile] = useState(null);
+
+    const [isEditMode, setIsEditMode] = useState(false);
+    const [editPropertyId, setEditPropertyId] = useState(null);
+
+    const fetchMyListings = async () => {
         try {
             const token = localStorage.getItem('token');
             const res = await axios.get(`${API_BASE_URL}/api/properties/my-listings`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            setMyProperties(res.data);
-        } catch (e) { console.error(e); }
-    };
-
-    const fetchLeads = async () => {
-        try {
-            const token = localStorage.getItem('token');
-            const res = await axios.get(`${API_BASE_URL}/api/likes/seller-dashboard`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            setLeads(res.data);
+            setProperties(res.data);
         } catch (e) {
             console.error(e);
-            setLeads([]);
+        } finally {
+            setLoading(false);
         }
-    };
-
-    const fetchTransactions = async () => {
-        try {
-            const token = localStorage.getItem('token');
-            const res = await axios.get(`${API_BASE_URL}/api/transactions/seller`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            setTransactions(res.data);
-        } catch (e) { console.error(e); }
     };
 
     useEffect(() => {
-        if (activeTab === 'listings') fetchMyProperties();
-        if (activeTab === 'leads') fetchLeads();
-        if (activeTab === 'sold') fetchTransactions();
-    }, [activeTab]);
+        fetchMyListings();
+    }, []);
 
-    const handleAddProperty = async () => {
-        setModalError(null);
-
-        // Strict Validation
-        if (!newProperty.title || !newProperty.address || !newProperty.city || !newProperty.description) {
-            setModalError('All fields including Description are required.');
-            return;
+    const handleInputChange = (e) => {
+        setFormData({ ...formData, [e.target.name]: e.target.value });
+        if (e.target.name === 'type') {
+            setAdditionalDetails({});
         }
+    };
 
-        // City Validation (Alphabets only)
-        const cityRegex = /^[a-zA-Z\s]+$/;
-        if (!cityRegex.test(newProperty.city)) {
-            setModalError('City name must contain only alphabets.');
-            return;
-        }
+    const handleAdditionalChange = (e) => {
+        setAdditionalDetails({ ...additionalDetails, [e.target.name]: e.target.value });
+    };
 
-        if (Number(newProperty.price) <= 0 || Number(newProperty.area) <= 0) {
-            setModalError('Price and Area must be positive numbers.');
-            return;
-        }
+    const openAddModal = () => {
+        setIsEditMode(false);
+        setEditPropertyId(null);
+        setFormData({ title: '', type: 'HOUSE', price: '', area: '', beds: '', baths: '', bhk: '', description: '', address: '', city: '' });
+        setAdditionalDetails({});
+        setImageFile(null);
+        setIsAddModalOpen(true);
+    };
 
-        if (newProperty.type === 'HOUSE' && (Number(newProperty.beds) < 0 || Number(newProperty.baths) < 0)) {
-            setModalError('Beds and Baths cannot be negative.');
-            return;
-        }
+    const openEditModal = (p) => {
+        setIsEditMode(true);
+        setEditPropertyId(p.id);
+        setFormData({
+            title: p.title || '', type: p.type || 'HOUSE', price: p.price || '', area: p.area || '', 
+            beds: p.beds || '', baths: p.baths || '', bhk: p.bhk || '', description: p.description || '', 
+            address: p.address || '', city: p.city || ''
+        });
+        setAdditionalDetails(p.additionalDetails || {});
+        setImageFile(null); // Leave null to signify no new image
+        setIsAddModalOpen(true);
+    };
 
-        // Image Validation
-        if (!newProperty.id && !newProperty.imageFile) {
-            setModalError('Property Image is required for new listings.');
-            return;
-        }
-
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setSubmitting(true);
         try {
             const token = localStorage.getItem('token');
-            const formData = new FormData();
-
-            // Append property JSON
-            // We strip 'images' from the JSON because it's handled separately or as a URL string in the object if not updating
-            const propertyBlob = new Blob([JSON.stringify(newProperty)], { type: 'application/json' });
-            formData.append('property', propertyBlob);
-
-            // Append Image File if exists
-            if (newProperty.imageFile) {
-                formData.append('image', newProperty.imageFile);
+            const data = new FormData();
+            
+            const payload = { ...formData };
+            if (payload.price) payload.price = parseFloat(payload.price);
+            if (payload.beds === '') payload.beds = null;
+            else if (payload.beds) payload.beds = parseInt(payload.beds, 10);
+            if (payload.baths === '') payload.baths = null;
+            else if (payload.baths) payload.baths = parseInt(payload.baths, 10);
+            
+            if (Object.keys(additionalDetails).length > 0) {
+                payload.additionalDetails = JSON.stringify(additionalDetails);
+            }
+            
+            data.append("property", new Blob([JSON.stringify(payload)], { type: "application/json" }));
+            
+            if (imageFile) {
+                data.append("image", imageFile);
             }
 
-            if (newProperty.id) {
-                // UPDATE Application 
-                // Note: Using PUT with Multipart can be tricky. Ensure backend accepts it.
-                await axios.put(`${API_BASE_URL}/api/properties/${newProperty.id}`, formData, {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                        'Content-Type': 'multipart/form-data'
-                    }
+            if (isEditMode) {
+                await axios.put(`${API_BASE_URL}/api/properties/${editPropertyId}`, data, {
+                    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' }
                 });
-                setNotification({ msg: 'Property updated successfully! It is pending re-approval.', type: 'info' });
             } else {
-                // CREATE Application
-                await axios.post(`${API_BASE_URL}/api/properties`, formData, {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                        'Content-Type': 'multipart/form-data'
-                    }
+                await axios.post(`${API_BASE_URL}/api/properties`, data, {
+                    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' }
                 });
-                setNotification({ msg: 'Property submitted for approval!', type: 'success' });
             }
-            setShowAddModal(false);
-            fetchMyProperties();
-        } catch (e) {
-            console.error("Error saving property:", e);
-            const errMsg = e.response?.data?.message || 'Failed to save property. Ensure all fields are valid.';
-            setModalError(errMsg);
+
+            setIsAddModalOpen(false);
+            fetchMyListings();
+        } catch (error) {
+            console.error(error);
+            alert(`Error ${isEditMode ? 'editing' : 'adding'} property.`);
+        } finally {
+            setSubmitting(false);
         }
     };
 
-    const handleFileChange = (e) => {
-        if (e.target.files && e.target.files[0]) {
-            setNewProperty({ ...newProperty, imageFile: e.target.files[0] });
-        }
-    };
-
-    const handleDelete = async (id) => {
-        if (!window.confirm("Are you sure?")) return;
+    const deleteProperty = async (id) => {
+        if (!window.confirm("Are you sure you want to delete this listing?")) return;
         try {
             const token = localStorage.getItem('token');
             await axios.delete(`${API_BASE_URL}/api/properties/${id}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            fetchMyProperties();
-        } catch (e) { console.error(e); }
+            setProperties(properties.filter(p => p.id !== id));
+        } catch (e) {
+            console.error(e);
+            alert("Failed to delete property.");
+        }
+    };
+
+    const renderDynamicFields = () => {
+        const { type } = formData;
+        if (['HOUSE', 'VILLA', 'APARTMENT'].includes(type)) {
+            return (
+                <>
+                    <div style={{ display: 'flex', gap: '1rem' }}>
+                        <div style={{ flex: 1 }}>
+                            <label style={{ display: 'block', color: '#888', fontSize: '0.75rem', marginBottom: '0.5rem', fontWeight: 600 }}>Furnishing</label>
+                            <select name="furnishing" value={additionalDetails.furnishing || ''} onChange={handleAdditionalChange} style={inputStyle}>
+                                <option value="">Select...</option>
+                                <option value="Furnished">Furnished</option>
+                                <option value="Semi-Furnished">Semi-Furnished</option>
+                                <option value="Unfurnished">Unfurnished</option>
+                            </select>
+                        </div>
+                        <div style={{ flex: 1 }}>
+                            <label style={{ display: 'block', color: '#888', fontSize: '0.75rem', marginBottom: '0.5rem', fontWeight: 600 }}>Kitchen Type</label>
+                            <select name="kitchenType" value={additionalDetails.kitchenType || ''} onChange={handleAdditionalChange} style={inputStyle}>
+                                <option value="">Select...</option>
+                                <option value="Modular">Modular</option>
+                                <option value="Standard">Standard</option>
+                                <option value="None">None</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '1rem' }}>
+                        <div style={{ flex: 1 }}>
+                            <label style={{ display: 'block', color: '#888', fontSize: '0.75rem', marginBottom: '0.5rem', fontWeight: 600 }}>Parking</label>
+                            <input type="text" name="parking" value={additionalDetails.parking || ''} onChange={handleAdditionalChange} style={inputStyle} placeholder="e.g. 1 Car, 2 Bikes" />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                            <label style={{ display: 'block', color: '#888', fontSize: '0.75rem', marginBottom: '0.5rem', fontWeight: 600 }}>Bathroom Type</label>
+                            <select name="bathroomType" value={additionalDetails.bathroomType || ''} onChange={handleAdditionalChange} style={inputStyle}>
+                                <option value="">Select...</option>
+                                <option value="Western">Western</option>
+                                <option value="Indian">Indian</option>
+                                <option value="Both">Both</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '1rem' }}>
+                        <div style={{ flex: 1 }}>
+                            <label style={{ display: 'block', color: '#888', fontSize: '0.75rem', marginBottom: '0.5rem', fontWeight: 600 }}>Balcony Area</label>
+                            <input type="text" name="balcony" value={additionalDetails.balcony || ''} onChange={handleAdditionalChange} style={inputStyle} placeholder="e.g. 120 sqft" />
+                        </div>
+                    </div>
+                </>
+            );
+        } else if (['LAND', 'FARMLAND', 'RESIDENTIAL_PLOT'].includes(type)) {
+            return (
+                <>
+                    <div style={{ display: 'flex', gap: '1rem' }}>
+                        <div style={{ flex: 1 }}>
+                            <label style={{ display: 'block', color: '#888', fontSize: '0.75rem', marginBottom: '0.5rem', fontWeight: 600 }}>Zoning</label>
+                            <select name="zoning" value={additionalDetails.zoning || ''} onChange={handleAdditionalChange} style={inputStyle}>
+                                <option value="">Select...</option>
+                                <option value="Agricultural">Agricultural</option>
+                                <option value="Residential">Residential</option>
+                                <option value="Commercial">Commercial</option>
+                            </select>
+                        </div>
+                        <div style={{ flex: 1 }}>
+                            <label style={{ display: 'block', color: '#888', fontSize: '0.75rem', marginBottom: '0.5rem', fontWeight: 600 }}>Road Access Width (ft)</label>
+                            <input type="number" name="roadWidth" value={additionalDetails.roadWidth || ''} onChange={handleAdditionalChange} style={inputStyle} placeholder="e.g. 30" />
+                        </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '1rem' }}>
+                        <div style={{ flex: 1 }}>
+                            <label style={{ display: 'block', color: '#888', fontSize: '0.75rem', marginBottom: '0.5rem', fontWeight: 600 }}>Water Source</label>
+                            <input type="text" name="water" value={additionalDetails.water || ''} onChange={handleAdditionalChange} style={inputStyle} placeholder="e.g. Borewell" />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                            <label style={{ display: 'block', color: '#888', fontSize: '0.75rem', marginBottom: '0.5rem', fontWeight: 600 }}>Electricity</label>
+                            <select name="electricity" value={additionalDetails.electricity || ''} onChange={handleAdditionalChange} style={inputStyle}>
+                                <option value="">Select...</option>
+                                <option value="Yes">Yes</option>
+                                <option value="No">No</option>
+                            </select>
+                        </div>
+                    </div>
+                </>
+            );
+        } else if (type === 'COMMERCIAL') {
+            return (
+                <>
+                    <div style={{ display: 'flex', gap: '1rem' }}>
+                        <div style={{ flex: 1 }}>
+                            <label style={{ display: 'block', color: '#888', fontSize: '0.75rem', marginBottom: '0.5rem', fontWeight: 600 }}>Property Use</label>
+                            <input type="text" name="propertyUse" value={additionalDetails.propertyUse || ''} onChange={handleAdditionalChange} style={inputStyle} placeholder="e.g. Shop, Office, Warehouse" />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                            <label style={{ display: 'block', color: '#888', fontSize: '0.75rem', marginBottom: '0.5rem', fontWeight: 600 }}>Washrooms</label>
+                            <select name="washrooms" value={additionalDetails.washrooms || ''} onChange={handleAdditionalChange} style={inputStyle}>
+                                <option value="">Select...</option>
+                                <option value="Private">Private</option>
+                                <option value="Shared">Shared</option>
+                                <option value="None">None</option>
+                            </select>
+                        </div>
+                    </div>
+                </>
+            );
+        } else if (type === 'PG_HOSTEL') {
+            return (
+                <>
+                    <div style={{ display: 'flex', gap: '1rem' }}>
+                        <div style={{ flex: 1 }}>
+                            <label style={{ display: 'block', color: '#888', fontSize: '0.75rem', marginBottom: '0.5rem', fontWeight: 600 }}>Room Sharing</label>
+                            <select name="roomSharing" value={additionalDetails.roomSharing || ''} onChange={handleAdditionalChange} style={inputStyle}>
+                                <option value="">Select...</option>
+                                <option value="Single">Single</option>
+                                <option value="Double">Double</option>
+                                <option value="Triple">Triple</option>
+                                <option value="More">More</option>
+                            </select>
+                        </div>
+                        <div style={{ flex: 1 }}>
+                            <label style={{ display: 'block', color: '#888', fontSize: '0.75rem', marginBottom: '0.5rem', fontWeight: 600 }}>Food Included</label>
+                            <select name="food" value={additionalDetails.food || ''} onChange={handleAdditionalChange} style={inputStyle}>
+                                <option value="">Select...</option>
+                                <option value="Yes">Yes</option>
+                                <option value="No">No</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '1rem' }}>
+                        <div style={{ flex: 1 }}>
+                            <label style={{ display: 'block', color: '#888', fontSize: '0.75rem', marginBottom: '0.5rem', fontWeight: 600 }}>AC / Non-AC</label>
+                            <select name="ac" value={additionalDetails.ac || ''} onChange={handleAdditionalChange} style={inputStyle}>
+                                <option value="">Select...</option>
+                                <option value="AC">AC</option>
+                                <option value="Non-AC">Non-AC</option>
+                            </select>
+                        </div>
+                    </div>
+                </>
+            );
+        }
+        return null;
     };
 
     return (
-        <Container className="py-5">
-            <div className="d-flex justify-content-between align-items-center mb-5">
+        <div style={{ background: '#000', minHeight: '100vh', paddingTop: 'var(--navbar-height)', fontFamily: 'var(--font-sans)', color: '#fff' }}>
+            
+            {/* Header */}
+            <div style={{ borderBottom: '1px solid #1a1a1a', padding: '2rem 2.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                    <h2 className="fw-bold mb-1">Seller Dashboard</h2>
-                    <p className="text-muted">Manage your listings and view potential leads</p>
+                    <p style={{ color: '#555', fontSize: '0.8rem', letterSpacing: '0.1em', textTransform: 'uppercase', margin: '0 0 4px 0' }}>Seller Dashboard</p>
+                    <h1 style={{ color: '#fff', fontSize: 'clamp(1.5rem, 3vw, 2rem)', fontWeight: 900, letterSpacing: '-0.03em', margin: 0 }}>My Listings</h1>
                 </div>
-                <Button variant="primary" onClick={() => {
-                    setNewProperty({
-                        type: 'HOUSE', price: '', address: '', city: '', area: '', beds: '', baths: '', bhk: '', description: '', images: '', title: ''
-                    });
-                    setShowAddModal(true);
-                }} className="d-flex align-items-center gap-2 rounded-pill px-4 shadow-sm">
-                    <Plus size={18} /> Add New Property
-                </Button>
+                <button
+                    onClick={openAddModal}
+                    style={{
+                        background: '#fff', color: '#000', border: 'none', borderRadius: 8,
+                        padding: '0.75rem 1.5rem', fontWeight: 700, fontSize: '0.875rem',
+                        cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem'
+                    }}
+                >
+                    <Plus size={16} /> Add Property
+                </button>
             </div>
 
-            {notification && <Alert variant={notification.type} onClose={() => setNotification(null)} dismissible className="rounded-3 shadow-sm mb-4">{notification.msg}</Alert>}
+            {/* Content */}
+            <div style={{ padding: '2.5rem' }}>
+                {loading ? (
+                    <div style={{ color: '#555' }}>Loading listings...</div>
+                ) : properties.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '4rem 0', color: '#666' }}>
+                        <Home size={48} style={{ marginBottom: '1rem', opacity: 0.5 }} />
+                        <p>You haven't listed any properties yet.</p>
+                    </div>
+                ) : (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.25rem' }}>
+                        {properties.map(p => (
+                            <div key={p.id} style={{ position: 'relative' }}>
+                                <PropertyCard property={p} user={user} />
+                                <div style={{ position: 'absolute', top: 10, right: 10, zIndex: 10, display: 'flex', gap: '0.5rem' }}>
+                                    <button
+                                        onClick={() => openEditModal(p)}
+                                        style={{
+                                            background: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.3)',
+                                            color: '#fff', borderRadius: '50%', width: 32, height: 32,
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                                            backdropFilter: 'blur(4px)'
+                                        }}
+                                    >
+                                        <Edit3 size={14} />
+                                    </button>
+                                    <button
+                                        onClick={() => deleteProperty(p.id)}
+                                        style={{
+                                            background: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,0,0,0.3)',
+                                            color: '#ff4d4d', borderRadius: '50%', width: 32, height: 32,
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                                            backdropFilter: 'blur(4px)'
+                                        }}
+                                    >
+                                        <Trash2 size={14} />
+                                    </button>
+                                </div>
+                                {/* Status overlay for Seller */}
+                                <div style={{
+                                    position: 'absolute', top: 10, left: 10, zIndex: 10,
+                                    background: p.status === 'AVAILABLE' ? 'rgba(0,0,0,0.8)' : 'rgba(255,180,0,0.9)',
+                                    color: p.status === 'AVAILABLE' ? '#fff' : '#000',
+                                    padding: '4px 10px', borderRadius: 100, fontSize: '0.7rem', fontWeight: 700,
+                                    letterSpacing: '0.1em', textTransform: 'uppercase'
+                                }}>
+                                    {p.status}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
 
-            {/* Stats Section */}
-            <Row className="mb-5 g-4">
-                <Col md={4}>
-                    <div className="bg-white p-4 rounded-4 shadow-sm border-start border-4 border-primary">
-                        <h5 className="text-muted mb-1">Total Listings</h5>
-                        <h2 className="fw-bold mb-0">{myProperties.length}</h2>
-                    </div>
-                </Col>
-                <Col md={4}>
-                    <div className="bg-white p-4 rounded-4 shadow-sm border-start border-4 border-success">
-                        <h5 className="text-muted mb-1">Interested Buyers</h5>
-                        <h2 className="fw-bold mb-0">{leads.length}</h2>
-                    </div>
-                </Col>
-                <Col md={4}>
-                    <div className="bg-white p-4 rounded-4 shadow-sm border-start border-4 border-warning">
-                        <h5 className="text-muted mb-1">Pending Approval</h5>
-                        <h2 className="fw-bold mb-0">{myProperties.filter((p) => p.status === 'PENDING').length}</h2>
-                    </div>
-                </Col>
-            </Row>
+            {/* Add Property Modal */}
+            <AnimatePresence>
+                {isAddModalOpen && (
+                    <>
+                        <motion.div
+                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            onClick={() => setIsAddModalOpen(false)}
+                            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 1000, backdropFilter: 'blur(4px)' }}
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.96 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.96 }}
+                            transition={{ duration: 0.3, ease: EASE }}
+                            style={{
+                                position: 'fixed', top: '50%', left: '50%',
+                                x: '-50%', y: '-50%',
+                                background: '#000', border: '1px solid #222', borderRadius: 16,
+                                width: '90%', maxWidth: 600, maxHeight: '90vh',
+                                zIndex: 1001, display: 'flex', flexDirection: 'column', overflow: 'hidden'
+                            }}
+                        >
+                            <div style={{ overflowY: 'auto', padding: '2rem', flex: 1, overscrollBehavior: 'contain', scrollBehavior: 'smooth' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                                    <h2 style={{ fontSize: '1.5rem', fontWeight: 900, margin: 0 }}>{isEditMode ? 'Edit Property' : 'Add New Property'}</h2>
+                                    <button onClick={() => setIsAddModalOpen(false)} style={{ background: '#111', border: '1px solid #222', color: '#fff', borderRadius: '50%', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                                        <X size={16} />
+                                    </button>
+                                </div>
 
-            <Tabs activeKey={activeTab} onSelect={(k) => setActiveTab(k || 'listings')} className="mb-4 border-bottom-0">
-                <Tab eventKey="listings" title={<span className="fw-bold px-3">My Listings</span>}>
-                    {myProperties.length === 0 ? (
-                        <div className="text-center py-5 bg-light rounded-4">
-                            <h4 className="text-muted">No properties listed yet.</h4>
-                            <Button variant="link" onClick={() => setShowAddModal(true)}>Add your first property</Button>
-                        </div>
-                    ) : (
-                        <Row>
-                            {myProperties.map((p) => (
-                                <Col md={6} lg={4} key={p.id} className="mb-4">
-                                    <div className="bg-white rounded-4 shadow-sm overflow-hidden h-100 border">
-                                        <div className="position-relative" style={{ height: '200px' }}>
-                                            <img
-                                                src={p.images ? p.images.split(',')[0] : "https://via.placeholder.com/400x200"}
-                                                alt="Property"
-                                                className="w-100 h-100 object-fit-cover"
-                                            />
-                                            <Badge bg={p.status === 'APPROVED' ? 'success' : p.status === 'REJECTED' ? 'danger' : 'warning'} className="position-absolute top-0 end-0 m-3 shadow-sm">
-                                                {p.status}
-                                            </Badge>
-                                            {p.status === 'REJECTED' && p.rejectionReason && (
-                                                <div className="text-danger small mt-1">
-                                                    <strong>Reason:</strong> {p.rejectionReason}
-                                                </div>
-                                            )}
+                                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                    <div>
+                                        <label style={{ display: 'block', color: '#888', fontSize: '0.75rem', marginBottom: '0.5rem', fontWeight: 600 }}>Title *</label>
+                                        <input required type="text" name="title" value={formData.title} onChange={handleInputChange} style={inputStyle} placeholder="e.g. Modern Apartment in Downtown" />
+                                    </div>
+
+                                    <div style={{ display: 'flex', gap: '1rem' }}>
+                                        <div style={{ flex: 1 }}>
+                                            <label style={{ display: 'block', color: '#888', fontSize: '0.75rem', marginBottom: '0.5rem', fontWeight: 600 }}>Type *</label>
+                                            <select required name="type" value={formData.type} onChange={handleInputChange} style={inputStyle}>
+                                                <option value="HOUSE">House</option>
+                                                <option value="APARTMENT">Apartment</option>
+                                                <option value="VILLA">Villa</option>
+                                                <option value="LAND">Land</option>
+                                                <option value="FARMLAND">Farmland</option>
+                                                <option value="COMMERCIAL">Commercial</option>
+                                                <option value="RESIDENTIAL_PLOT">Residential Plot</option>
+                                                <option value="PG_HOSTEL">PG/Hostel</option>
+                                                <option value="OTHER">Other</option>
+                                            </select>
                                         </div>
-                                        <div className="p-4">
-                                            <div className="d-flex justify-content-between align-items-start mb-2">
-                                                <h5 className="fw-bold mb-0 text-truncate" style={{ maxWidth: '70%' }}>{p.title || p.type}</h5>
-                                                <h6 className="text-primary fw-bold">₹ {p.price.toLocaleString()}</h6>
-                                            </div>
-                                            <p className="text-muted small mb-3 text-truncate">{p.address}, {p.city}</p>
-
-                                            <div className="d-flex gap-2">
-                                                <Button variant="outline-primary" size="sm" className="flex-grow-1 rounded-pill" onClick={() => {
-                                                    setNewProperty(p);
-                                                    setShowAddModal(true);
-                                                }}>
-                                                    Edit
-                                                </Button>
-                                                <Button variant="outline-danger" size="sm" className="rounded-pill" onClick={() => handleDelete(p.id)}>
-                                                    <Trash size={16} />
-                                                </Button>
-                                            </div>
+                                        <div style={{ flex: 1 }}>
+                                            <label style={{ display: 'block', color: '#888', fontSize: '0.75rem', marginBottom: '0.5rem', fontWeight: 600 }}>Price (₹) *</label>
+                                            <input required type="number" name="price" value={formData.price} onChange={handleInputChange} style={inputStyle} placeholder="e.g. 5000000" />
                                         </div>
                                     </div>
-                                </Col>
-                            ))}
-                        </Row>
-                    )}
-                </Tab>
-                <Tab eventKey="leads" title={<span className="fw-bold px-3">Interested Buyers</span>}>
-                    <Card className="border-0 shadow-sm">
-                        <Card.Body>
-                            <h5 className="mb-3 d-flex align-items-center gap-2">
-                                <Heart className="text-danger" size={20} /> Buyers who liked your properties
-                            </h5>
-                            {leads.length === 0 ? <p className="text-muted">No interested buyers yet.</p> : (
-                                <Table responsive hover className="mb-0">
-                                    <thead className="bg-light">
-                                        <tr>
-                                            <th className="py-3 ps-4">Property</th>
-                                            <th className="py-3">Buyer Name</th>
-                                            <th className="py-3">Contact Email</th>
-                                            <th className="py-3">Contact Phone</th>
-                                            <th className="py-3">Message Action</th>
-                                            <th className="py-3 pe-4">Date</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {leads.map((l) => (
-                                            <tr key={l.id}>
-                                                <td className="ps-4 fw-medium py-3">{l.property.title}</td>
-                                                <td className="py-3">{l.user.name}</td>
-                                                <td className="py-3">{l.user.email}</td>
-                                                <td className="py-3">{l.user.phone || 'N/A'}</td>
-                                                <td className="py-3">
-                                                    <div className="d-flex gap-2">
-                                                        <a href={`mailto:${l.user.email}`} className="btn btn-sm btn-light rounded-circle border"><Mail size={14} /></a>
-                                                        {l.user.phone && <a href={`https://wa.me/${l.user.phone}`} target="_blank" className="btn btn-sm btn-success rounded-circle text-white"><MessageCircle size={14} /></a>}
-                                                    </div>
-                                                </td>
-                                                <td className="pe-4 py-3">{new Date(l.createdAt).toLocaleDateString()}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </Table>
-                            )}
-                        </Card.Body>
-                    </Card>
-                </Tab>
-                <Tab eventKey="sold" title={<span className="fw-bold px-3">Sold Properties</span>}>
-                    <Card className="border-0 shadow-sm">
-                        <Card.Body>
-                            {transactions.length === 0 ? <p className="text-muted">No sold properties yet.</p> : (
-                                <Table responsive hover>
-                                    <thead>
-                                        <tr>
-                                            <th>Transaction ID</th>
-                                            <th>Property</th>
-                                            <th>Buyer</th>
-                                            <th>Amount (5%)</th>
-                                            <th>Date</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {transactions.map((t) => (
-                                            <tr key={t.id}>
-                                                <td><small className="font-monospace">{t.transactionId}</small></td>
-                                                <td>{t.property.title}</td>
-                                                <td>
-                                                    <div>{t.buyer.name}</div>
-                                                    <small className="text-muted">{t.buyer.phone}</small>
-                                                </td>
-                                                <td className="text-success fw-bold">₹ {t.amount.toLocaleString()}</td>
-                                                <td>{new Date(t.paymentDate).toLocaleDateString()}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </Table>
-                            )}
-                        </Card.Body>
-                    </Card>
-                </Tab>
-            </Tabs>
 
-            {/* Add/Edit Property Modal */}
-            <Modal show={showAddModal} onHide={() => setShowAddModal(false)} size="lg" centered>
-                <Modal.Header closeButton className="border-0 pb-0">
-                    <Modal.Title className="fw-bold">{newProperty.id ? 'Edit Property' : 'Add New Property'}</Modal.Title>
-                </Modal.Header>
-                <Modal.Body className="pt-4">
-                    {modalError && <Alert variant="danger" onClose={() => setModalError(null)} dismissible>{modalError}</Alert>}
-                    <Form>
-                        <Form.Group className="mb-3">
-                            <Form.Label>Property Title / Headline <span className="text-danger">*</span></Form.Label>
-                            <Form.Control
-                                placeholder="e.g. Luxurious Villa in Mumbai"
-                                value={newProperty.title || ''}
-                                onChange={(e) => setNewProperty({ ...newProperty, title: e.target.value })}
-                            />
-                        </Form.Group>
+                                    <div style={{ display: 'flex', gap: '1rem' }}>
+                                        <div style={{ flex: 1 }}>
+                                            <label style={{ display: 'block', color: '#888', fontSize: '0.75rem', marginBottom: '0.5rem', fontWeight: 600 }}>City *</label>
+                                            <input required type="text" name="city" value={formData.city} onChange={handleInputChange} style={inputStyle} placeholder="e.g. Mumbai" />
+                                        </div>
+                                        <div style={{ flex: 1 }}>
+                                            <label style={{ display: 'block', color: '#888', fontSize: '0.75rem', marginBottom: '0.5rem', fontWeight: 600 }}>Area (sqft) *</label>
+                                            <input required type="text" name="area" value={formData.area} onChange={handleInputChange} style={inputStyle} placeholder="e.g. 1500" />
+                                        </div>
+                                    </div>
 
-                        <Row className="mb-3">
-                            <Col md={6}>
-                                <Form.Group>
-                                    <Form.Label>Property Type</Form.Label>
-                                    <Form.Select
-                                        value={newProperty.type}
-                                        onChange={(e) => setNewProperty({ ...newProperty, type: e.target.value })}
-                                        className="form-select"
+                                    <div style={{ display: 'flex', gap: '1rem' }}>
+                                        <div style={{ flex: 1 }}>
+                                            <label style={{ display: 'block', color: '#888', fontSize: '0.75rem', marginBottom: '0.5rem', fontWeight: 600 }}>Beds *</label>
+                                            <input required type="number" name="beds" value={formData.beds} onChange={handleInputChange} style={inputStyle} placeholder="2" />
+                                        </div>
+                                        <div style={{ flex: 1 }}>
+                                            <label style={{ display: 'block', color: '#888', fontSize: '0.75rem', marginBottom: '0.5rem', fontWeight: 600 }}>Baths *</label>
+                                            <input required type="number" name="baths" value={formData.baths} onChange={handleInputChange} style={inputStyle} placeholder="2" />
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label style={{ display: 'block', color: '#888', fontSize: '0.75rem', marginBottom: '0.5rem', fontWeight: 600 }}>Address *</label>
+                                        <input required type="text" name="address" value={formData.address} onChange={handleInputChange} style={inputStyle} placeholder="Full street address" />
+                                    </div>
+
+                                    <div>
+                                        <label style={{ display: 'block', color: '#888', fontSize: '0.75rem', marginBottom: '0.5rem', fontWeight: 600 }}>Description *</label>
+                                        <textarea required name="description" value={formData.description} onChange={handleInputChange} rows={3} style={{ ...inputStyle, resize: 'vertical' }} placeholder="Describe the property..."></textarea>
+                                    </div>
+
+                                    {renderDynamicFields()}
+
+                                    <div>
+                                        <label style={{ display: 'block', color: '#888', fontSize: '0.75rem', marginBottom: '0.5rem', fontWeight: 600 }}>Property Image *</label>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#111', border: '1px dashed #333', borderRadius: 8, padding: '0.75rem 1rem', cursor: 'pointer', flex: 1, justifyContent: 'center', transition: 'border 0.2s' }}>
+                                                <ImageIcon size={16} color="#888" />
+                                                <span style={{ color: '#888', fontSize: '0.875rem' }}>{imageFile ? imageFile.name : (isEditMode ? 'Leave empty to keep existing image' : 'Select Image...')}</span>
+                                                <input required={!isEditMode} type="file" onChange={(e) => setImageFile(e.target.files[0])} accept="image/*" style={{ display: 'none' }} />
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <button
+                                        type="submit"
+                                        disabled={submitting}
+                                        style={{
+                                            background: '#fff', color: '#000', border: 'none', borderRadius: 8,
+                                            padding: '1rem', fontWeight: 700, fontSize: '1rem', marginTop: '1rem',
+                                            cursor: submitting ? 'not-allowed' : 'pointer', opacity: submitting ? 0.7 : 1
+                                        }}
                                     >
-                                        <option value="HOUSE">House</option>
-                                        <option value="FARM">Farm Land</option>
-                                        <option value="LAND">Plot / Land</option>
-                                    </Form.Select>
-                                </Form.Group>
-                            </Col>
-                            <Col md={6}>
-                                <Form.Group>
-                                    <Form.Label>Price (₹) <span className="text-danger">*</span></Form.Label>
-                                    <Form.Control
-                                        type="number"
-                                        value={newProperty.price}
-                                        onChange={(e) => setNewProperty({ ...newProperty, price: e.target.value })}
-                                    />
-                                </Form.Group>
-                            </Col>
-                        </Row>
-                        <Row className="mb-3">
-                            <Col md={6}>
-                                <Form.Group>
-                                    <Form.Label>City <span className="text-danger">*</span></Form.Label>
-                                    <Form.Control
-                                        value={newProperty.city}
-                                        onChange={(e) => setNewProperty({ ...newProperty, city: e.target.value })}
-                                    />
-                                </Form.Group>
-                            </Col>
-                            <Col md={6}>
-                                <Form.Group>
-                                    <Form.Label>Area (Sqft / Acres) <span className="text-danger">*</span></Form.Label>
-                                    <Form.Control
-                                        value={newProperty.area}
-                                        onChange={(e) => setNewProperty({ ...newProperty, area: e.target.value })}
-                                    />
-                                </Form.Group>
-                            </Col>
-                        </Row>
-                        <Form.Group className="mb-3">
-                            <Form.Label>Full Address <span className="text-danger">*</span></Form.Label>
-                            <Form.Control
-                                value={newProperty.address}
-                                onChange={(e) => setNewProperty({ ...newProperty, address: e.target.value })}
-                            />
-                        </Form.Group>
-
-                        {/* Live Map Preview */}
-                        <div className="mb-3">
-                            <Form.Label>Location Preview</Form.Label>
-                            <div className="rounded-3 overflow-hidden border" style={{ height: '300px' }}>
-                                <PropertyMap location={`${newProperty.address}, ${newProperty.city}`} />
+                                        {submitting ? (isEditMode ? 'Saving...' : 'Adding...') : (isEditMode ? 'Save Changes' : 'Add Property')}
+                                    </button>
+                                </form>
                             </div>
-                        </div>
-
-                        {newProperty.type === 'HOUSE' && (
-                            <Row className="mb-3">
-                                <Col>
-                                    <Form.Control placeholder="Beds" type="number" value={newProperty.beds} onChange={(e) => setNewProperty({ ...newProperty, beds: e.target.value })} />
-                                </Col>
-                                <Col>
-                                    <Form.Control placeholder="Baths" type="number" value={newProperty.baths} onChange={(e) => setNewProperty({ ...newProperty, baths: e.target.value })} />
-                                </Col>
-                                <Col>
-                                    <Form.Control placeholder="BHK (e.g. 2BHK)" value={newProperty.bhk} onChange={(e) => setNewProperty({ ...newProperty, bhk: e.target.value })} />
-                                </Col>
-                            </Row>
-                        )}
-
-                        <Form.Group className="mb-3">
-                            <Form.Label>Description <span className="text-danger">*</span></Form.Label>
-                            <Form.Control as="textarea" rows={3} value={newProperty.description} onChange={(e) => setNewProperty({ ...newProperty, description: e.target.value })} />
-                        </Form.Group>
-
-
-                        <Form.Group className="mb-3">
-                            <Form.Label>Property Image (Upload) <span className="text-danger">*</span></Form.Label>
-                            <Form.Control
-                                type="file"
-                                accept="image/*"
-                                onChange={handleFileChange}
-                            />
-                            {newProperty.images && !newProperty.imageFile && (
-                                <div className="mt-2">
-                                    <small className="text-muted">Current Image:</small>
-                                    <img src={newProperty.images} alt="preview" style={{ height: '80px', marginLeft: '10px' }} />
-                                </div>
-                            )}
-                        </Form.Group>
-                    </Form>
-                </Modal.Body>
-                <Modal.Footer className="border-0">
-                    <Button variant="light" onClick={() => setShowAddModal(false)}>Cancel</Button>
-                    <Button variant="primary" onClick={handleAddProperty} className="px-4 rounded-pill">
-                        {newProperty.id ? 'Save Changes' : 'Submit Property'}
-                    </Button>
-                </Modal.Footer>
-            </Modal>
-        </Container>
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
+        </div>
     );
 };
 
