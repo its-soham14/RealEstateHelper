@@ -1,9 +1,7 @@
 services:
   - type: web
     name: realestate-backend
-    runtime: java
-    buildCommand: cd backend && ./mvnw clean package -DskipTests
-    startCommand: java -jar backend/target/realestate-0.0.1-SNAPSHOT.jar
+    env: docker
     envVars:
       - key: DB_URL
         sync: false
